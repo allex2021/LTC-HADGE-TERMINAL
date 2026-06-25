@@ -1323,17 +1323,18 @@ function updateChartPriceLines(px,sr){
   const {lev,lm,sm}=getPlanConfig();
   if(!lev||!px)return;
   
-  const lq=lm*lev/px,sq=sm*lev/px;
-  const atrPct=atrVal&&px?atrVal/px:0;
+  const basePx=tradePx||px;
+  const lq=lm*lev/basePx,sq=sm*lev/basePx;
+  const atrPct=atrVal&&basePx?atrVal/basePx:0;
   const ltp1pct=atrPct>0?Math.min(Math.max(atrPct,0.01),0.04):0.015;
   const ltp2pct=atrPct>0?Math.min(Math.max(atrPct,0.015),0.06)*1.8:0.028;
   const stp1pct=atrPct>0?Math.min(Math.max(atrPct,0.008),0.03):0.013;
   const stp2pct=atrPct>0?Math.min(Math.max(atrPct,0.012),0.05)*1.8:0.025;
   
-  const ltp1=px*(1+ltp1pct),ltp2=px*(1+ltp2pct);
-  const stp1=px*(1-stp1pct),stp2=px*(1-stp2pct);
-  const lsl=px*(1-0.04),ssl=px*(1+0.035);
-  const llq=px*(1-1/lev+0.005),slq=px*(1+1/lev-0.005);
+  const ltp1=basePx*(1+ltp1pct),ltp2=basePx*(1+ltp2pct);
+  const stp1=basePx*(1-stp1pct),stp2=basePx*(1-stp2pct);
+  const lsl=basePx*(1-0.04),ssl=basePx*(1+0.035);
+  const llq=basePx*(1-1/lev+0.005),slq=basePx*(1+1/lev-0.005);
   
   const addLine=(val,color,text)=>{
     try{
@@ -2774,6 +2775,7 @@ function handleStartTradeClick(){
 
 function startTrade(){
   tradeT=Date.now();tradePx=price;longEntry=price;shortEntry=price;
+  saveActiveTradeState();
   document.getElementById('panel-open').style.display='none';
   document.getElementById('panel-active').style.display='block';
   document.getElementById('pnlLive').style.display='block';
@@ -2789,10 +2791,38 @@ function endTrade(){
     renderJournal();
   }
   tradeT=null;tradePx=null;longEntry=null;shortEntry=null;
+  saveActiveTradeState();
   document.getElementById('panel-open').style.display='block';
   document.getElementById('panel-active').style.display='none';
   document.getElementById('pnlLive').style.display='none';
   clearChartPriceLines();
+}
+function saveActiveTradeState(){
+  try{
+    if(tradeT){
+      const state={tradeT,tradePx,longEntry,shortEntry};
+      localStorage.setItem('ltc_active_trade_v7',JSON.stringify(state));
+    }else{
+      localStorage.removeItem('ltc_active_trade_v7');
+    }
+  }catch(e){}
+}
+function restoreActiveTradeState(){
+  try{
+    const s=localStorage.getItem('ltc_active_trade_v7');
+    if(s){
+      const state=JSON.parse(s);
+      tradeT=state.tradeT;
+      tradePx=state.tradePx;
+      longEntry=state.longEntry;
+      shortEntry=state.shortEntry;
+      document.getElementById('panel-open').style.display='none';
+      document.getElementById('panel-active').style.display='block';
+      document.getElementById('pnlLive').style.display='block';
+      const ep=document.getElementById('ts-ep');if(ep)ep.textContent=tradePx?'$'+tradePx.toFixed(2):'—';
+      if(tradePx)updateChartPriceLines(tradePx,SR);
+    }
+  }catch(e){}
 }
 function exportCSV(){
   if(!journal.length){showToast('❌ কোনো ট্রেড রেকর্ড নেই।','below');return;}
@@ -3238,6 +3268,7 @@ async function loadAll(){
   renderFRChart();
   calculateArbYield();
   runAIAnalysis(false);
+  restoreActiveTradeState();
 }
 async function periodicRefresh(){
   // Fetch metrics in parallel
