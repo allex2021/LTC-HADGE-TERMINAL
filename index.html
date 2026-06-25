@@ -753,10 +753,14 @@ body>*{position:relative;z-index:1}
       <div id="api-exec-fields" style="display:none;flex-direction:column;gap:6px;border-top:.5px solid var(--bd);padding-top:6px">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:6px">
           <span style="font-size:10px;color:var(--t3)">ট্রেডিং এক্সচেঞ্জ</span>
-          <select id="api-exec-exchange" class="dca-input" style="width:140px;padding:4px 6px;font-size:11px;height:26px">
+          <select id="api-exec-exchange" class="dca-input" style="width:140px;padding:4px 6px;font-size:11px;height:26px" onchange="updateApiBalance()">
             <option value="binance">Binance</option>
             <option value="bybit">Bybit</option>
           </select>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;border-top:.5px solid var(--bd);padding-top:4px">
+          <span style="font-size:10px;color:var(--t3)">একাউন্ট ব্যালেন্স</span>
+          <span id="api-balance-val" style="font-family:var(--mono);font-size:11px;font-weight:700;color:var(--t3)">$—.—— USDT</span>
         </div>
       </div>
     </div>
@@ -1032,6 +1036,16 @@ body>*{position:relative;z-index:1}
       </div>
     </div>
     
+    <div class="sep" style="margin:10px 0"></div>
+    <div class="sett-field" style="margin-bottom:12px">
+      <label class="sett-label">🔐 টার্মিনাল পাসকোড লক (Terminal PIN Lock)</label>
+      <div style="display:flex;gap:6px">
+        <input class="sett-inp" id="settPasscode" type="password" maxlength="6" placeholder="Set 4-6 digit numeric PIN..." style="flex:1">
+        <button type="button" class="btn btnsm" id="btn-passcode-action" style="background:var(--bg3);color:var(--t2);border:.5px solid var(--bd2);padding:8px 12px;font-size:10px;border-radius:8px;cursor:pointer;font-weight:700" onclick="handlePasscodeSetup()">সেট পিন</button>
+      </div>
+      <div id="passcode-status-desc" style="font-size:9px;color:var(--t3);margin-top:3px">পাসকোড সেট করলে অ্যাপ ওপেন করার সময় পিন নম্বর চাইবে।</div>
+    </div>
+
     <div class="sett-row" style="display:flex;align-items:center;justify-content:space-between">
       <span class="sett-row-lbl">🔔 অডিও অ্যালার্ট (TTS)</span>
       <div style="display:flex;align-items:center;gap:10px">
@@ -1101,6 +1115,24 @@ function toggleSettings(show){
     document.getElementById('settBinanceSecret').value=settings.binanceSecret||'';
     document.getElementById('settBybitKey').value=settings.bybitKey||'';
     document.getElementById('settBybitSecret').value=settings.bybitSecret||'';
+    
+    // Passcode UI Init
+    const inputEl = document.getElementById('settPasscode');
+    const btnEl = document.getElementById('btn-passcode-action');
+    const descEl = document.getElementById('passcode-status-desc');
+    if(inputEl && btnEl){
+      inputEl.value = '';
+      const existingHash = localStorage.getItem('ltc_passcode_hash');
+      if(existingHash){
+        inputEl.placeholder = 'পাসকোড রিমুভ করতে পিন দিন...';
+        btnEl.textContent = 'পিন মুছুন';
+        if(descEl) descEl.textContent = '🔐 পাসকোড লক সক্রিয় আছে। পিন পরিবর্তন করতে এটি প্রথমে মুছুন।';
+      }else{
+        inputEl.placeholder = 'Set 4-6 digit numeric PIN...';
+        btnEl.textContent = 'সেট পিন';
+        if(descEl) descEl.textContent = 'পাসকোড সেট করলে অ্যাপ ওপেন করার সময় পিন নম্বর চাইবে।';
+      }
+    }
   }
 }
 function saveSettings(){
@@ -1118,6 +1150,161 @@ function saveSettings(){
     showToast('✅ সেটিংস সেভ করা হয়েছে!','above');
   }catch(e){}
   toggleSettings(false);
+}
+async function getHashSHA256(str){
+  const encoder = new TextEncoder();
+  const data = encoder.encode(str);
+  const hashBuffer = await window.crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+async function handlePasscodeSetup(){
+  const inputEl = document.getElementById('settPasscode');
+  const btnEl = document.getElementById('btn-passcode-action');
+  const descEl = document.getElementById('passcode-status-desc');
+  if(!inputEl || !btnEl) return;
+  const val = inputEl.value.trim();
+  const existingHash = localStorage.getItem('ltc_passcode_hash');
+  if(existingHash){
+    if(!val){
+      showToast('❌ পাসকোড মুছতে বর্তমান পিনটি ইনপুট করুন!','below');
+      return;
+    }
+    const enteredHash = await getHashSHA256(val);
+    if(enteredHash === existingHash){
+      localStorage.removeItem('ltc_passcode_hash');
+      showToast('✅ পাসকোড লক নিষ্ক্রিয় করা হয়েছে!','above');
+      inputEl.value = '';
+      inputEl.placeholder = 'Set 4-6 digit numeric PIN...';
+      btnEl.textContent = 'সেট পিন';
+      if(descEl) descEl.textContent = 'পাসকোড সেট করলে অ্যাপ ওপেন করার সময় পিন নম্বর চাইবে।';
+    }else{
+      showToast('❌ ভুল পাসকোড!','below');
+    }
+  }else{
+    if(!/^\d{4,6}$/.test(val)){
+      showToast('❌ পাসকোড ৪ থেকে ৬ ডিজিটের সংখ্যা হতে হবে!','below');
+      return;
+    }
+    const newHash = await getHashSHA256(val);
+    localStorage.setItem('ltc_passcode_hash', newHash);
+    showToast('✅ পাসকোড সফলভাবে সেট করা হয়েছে!','above');
+    inputEl.value = '';
+    inputEl.placeholder = 'পাসকোড রিমুভ করতে পিন দিন...';
+    btnEl.textContent = 'পিন মুছুন';
+    if(descEl) descEl.textContent = '🔐 পাসকোড লক সক্রিয় আছে। পিন পরিবর্তন করতে এটি প্রথমে মুছুন।';
+  }
+}
+function showLockScreen(correctHash){
+  const lock = document.createElement('div');
+  lock.id = 'terminal-lock-screen';
+  lock.style = 'position:fixed;inset:0;background:var(--bg);z-index:999999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(15px);';
+  lock.innerHTML = `
+    <div style="width:100%;max-width:320px;display:flex;flex-direction:column;align-items:center;gap:24px;">
+      <div style="text-align:center;">
+        <div style="font-family:var(--display);font-size:20px;font-weight:900;letter-spacing:2px;color:var(--g);text-shadow:0 0 10px rgba(0,245,168,0.3)">
+          LTC/HEDGE <span style="color:var(--c)">TERMINAL</span>
+        </div>
+        <div style="font-size:10px;color:var(--t3);letter-spacing:1px;margin-top:6px;text-transform:uppercase">Security Lock Screen</div>
+      </div>
+      
+      <div style="width:100%;background:var(--bg2);border:.5px solid var(--bd2);border-radius:16px;padding:24px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:16px;align-items:center">
+        <div style="font-size:12px;color:var(--t2);text-align:center">টার্মিনাল আনলক করতে পিন কোড দিন</div>
+        
+        <input id="lock-pin-input" type="password" readonly style="width:100%;background:var(--bg3);border:.5px solid var(--bd2);color:var(--g);font-family:var(--mono);font-size:24px;text-align:center;padding:10px;border-radius:10px;letter-spacing:8px;outline:none;">
+        
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:100%;">
+          ${[1,2,3,4,5,6,7,8,9].map(n => `<button class="pin-btn" onclick="pressLockPin('${n}')" style="background:var(--bg3);border:.5px solid var(--bd2);color:var(--t);font-family:var(--mono);font-size:18px;font-weight:700;padding:14px;border-radius:10px;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;justify-content:center;">${n}</button>`).join('')}
+          <button class="pin-btn" onclick="pressLockPin('clear')" style="background:var(--bg3);border:.5px solid var(--bd2);color:var(--r);font-family:var(--sans);font-size:12px;font-weight:700;padding:14px;border-radius:10px;cursor:pointer;">Clear</button>
+          <button class="pin-btn" onclick="pressLockPin('0')" style="background:var(--bg3);border:.5px solid var(--bd2);color:var(--t);font-family:var(--mono);font-size:18px;font-weight:700;padding:14px;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;">0</button>
+          <button class="pin-btn" onclick="pressLockPin('enter')" style="background:var(--g);border:none;color:#000;font-family:var(--sans);font-size:12px;font-weight:700;padding:14px;border-radius:10px;cursor:pointer;">Enter</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(lock);
+  
+  const style = document.createElement('style');
+  style.id = 'lock-screen-styles';
+  style.innerHTML = `
+    .pin-btn:hover { background:var(--bd) !important; border-color:var(--g) !important; color:var(--g) !important; }
+    .pin-btn:active { transform:scale(0.95); }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-8px); }
+      40%, 80% { transform: translateX(8px); }
+    }
+  `;
+  document.head.appendChild(style);
+  
+  let currentPin = '';
+  window.pressLockPin = async function(key){
+    const pinIn = document.getElementById('lock-pin-input');
+    if(!pinIn) return;
+    if(key === 'clear'){
+      currentPin = '';
+      pinIn.value = '';
+    }else if(key === 'enter'){
+      if(currentPin.length < 4){
+        showToast('❌ কমপক্ষে ৪ ডিজিটের পিন দিন!','below');
+        return;
+      }
+      const hashed = await getHashSHA256(currentPin);
+      if(hashed === correctHash){
+        try {
+          const actx = new (window.AudioContext || window.webkitAudioContext)();
+          const osc = actx.createOscillator();
+          const gain = actx.createGain();
+          osc.connect(gain);
+          gain.connect(actx.destination);
+          osc.frequency.setValueAtTime(880, actx.currentTime);
+          gain.gain.setValueAtTime(0.05, actx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + 0.15);
+          osc.start();
+          osc.stop(actx.currentTime + 0.15);
+        } catch(e) {}
+        lock.style.transition = 'opacity 0.3s, transform 0.3s';
+        lock.style.opacity = '0';
+        lock.style.transform = 'scale(1.05)';
+        setTimeout(() => {
+          lock.remove();
+          const s = document.getElementById('lock-screen-styles');
+          if(s) s.remove();
+        }, 300);
+      }else{
+        currentPin = '';
+        pinIn.value = '';
+        pinIn.style.borderColor = 'var(--r)';
+        pinIn.style.color = 'var(--r)';
+        const card = lock.querySelector('div > div:nth-child(2)');
+        if(card){
+          card.style.animation = 'shake 0.3s ease';
+          setTimeout(() => card.style.animation = '', 300);
+        }
+        showToast('❌ ভুল পাসকোড! পুনরায় চেষ্টা করুন।','below');
+        setTimeout(() => {
+          pinIn.style.borderColor = 'var(--bd2)';
+          pinIn.style.color = 'var(--g)';
+        }, 1000);
+      }
+    }else{
+      if(currentPin.length >= 6) return;
+      currentPin += key;
+      pinIn.value = '*'.repeat(currentPin.length);
+    }
+  };
+  
+  const keyHandler = (e) => {
+    if(!document.getElementById('terminal-lock-screen')) return;
+    if(e.key >= '0' && e.key <= '9'){
+      pressLockPin(e.key);
+    }else if(e.key === 'Enter'){
+      pressLockPin('enter');
+    }else if(e.key === 'Backspace' || e.key === 'Escape'){
+      pressLockPin('clear');
+    }
+  };
+  window.addEventListener('keydown', keyHandler);
 }
 
 function clearChartPriceLines(){
@@ -2030,8 +2217,9 @@ function toggleApiExecUi(){
   if(chk&&fields){
     fields.style.display=chk.checked?'flex':'none';
     if(desc){
-      desc.textContent=chk.checked?'সরাসরি এপিআই এর মাধ্যমে স্পট ও ফিউচার পজিশন ওপেন হবে':'লং + শর্ট দুটো খোলার পর এই বাটন চাপুন';
+      desc.textContent=chk.checked?'সরাসরি এপিআই এর মাধ্যমে ফিউচার লং + শর্ট পজিশন ওপেন হবে':'লং + শর্ট দুটো খোলার পর এই বাটন চাপুন';
     }
+    updateApiBalance();
   }
 }
 async function hmacSha256(secret,message){
@@ -2073,10 +2261,20 @@ async function callBinanceApi(baseUrl,path,queryParamsObj,method='POST'){
   });
   return await r.json();
 }
-async function callBybitApi(path,bodyObj){
+async function callBybitApi(path,bodyObj,method='POST'){
   const timestamp=Date.now().toString();
   const recvWindow="10000";
-  const bodyStr=JSON.stringify(bodyObj);
+  let bodyStr="";
+  let targetUrl='https://api.bybit.com'+path;
+  if(method==='GET'){
+    if(bodyObj){
+      const qs=Object.keys(bodyObj).map(k=>`${k}=${encodeURIComponent(bodyObj[k])}`).join('&');
+      targetUrl+='?'+qs;
+      bodyStr=qs;
+    }
+  }else{
+    bodyStr=JSON.stringify(bodyObj);
+  }
   const msg=timestamp+settings.bybitKey+recvWindow+bodyStr;
   const signature=await hmacSha256(settings.bybitSecret,msg);
   const headers={
@@ -2086,13 +2284,15 @@ async function callBybitApi(path,bodyObj){
     'X-BAPI-TIMESTAMP':timestamp,
     'X-BAPI-RECV-WINDOW':recvWindow
   };
-  const targetUrl='https://api.bybit.com'+path;
   const proxyUrl='/proxy/'+encodeURIComponent(targetUrl);
-  const r=await fetch(proxyUrl,{
-    method:'POST',
-    headers:headers,
-    body:bodyStr
-  });
+  const fetchOpts={
+    method:method,
+    headers:headers
+  };
+  if(method==='POST'){
+    fetchOpts.body=bodyStr;
+  }
+  const r=await fetch(proxyUrl,fetchOpts);
   return await r.json();
 }
 function formatQty(coin,qty){
@@ -2453,6 +2653,7 @@ async function executeApiHedge(){
     }
     closeApiConfirmModal();
     startTrade();
+    setTimeout(updateApiBalance,2000);
   }catch(err){
     console.error("API Execution error:",err);
     modalBody.innerHTML=`
@@ -2476,6 +2677,81 @@ async function executeApiHedge(){
         </div>
       </div>
     `;
+  }
+}
+async function updateApiBalance(){
+  const checkEl=document.getElementById('api-exec-check');
+  const balValEl=document.getElementById('api-balance-val');
+  if(!checkEl || !balValEl) return;
+  if(!checkEl.checked){
+    balValEl.textContent='$—.—— USDT';
+    balValEl.style.color='var(--t3)';
+    return;
+  }
+  const ex=document.getElementById('api-exec-exchange')?.value;
+  balValEl.textContent='লোড হচ্ছে...';
+  balValEl.style.color='var(--a)';
+  try{
+    if(ex==='binance'){
+      if(!settings.binanceKey || !settings.binanceSecret){
+        balValEl.textContent='এপিআই কি নেই';
+        balValEl.style.color='var(--r)';
+        return;
+      }
+      const res = await callBinanceApi('https://fapi.binance.com', '/fapi/v2/balance', {}, 'GET');
+      if (res && res.msg) {
+        throw new Error(res.msg);
+      }
+      if (Array.isArray(res)) {
+        const usdtAsset = res.find(a => a.asset === 'USDT');
+        if (usdtAsset) {
+          const bal = parseFloat(usdtAsset.balance);
+          balValEl.textContent = `$${bal.toFixed(2)} USDT`;
+          balValEl.style.color = 'var(--g)';
+        } else {
+          balValEl.textContent = '$0.00 USDT';
+          balValEl.style.color = 'var(--t2)';
+        }
+      } else {
+        throw new Error("Invalid response");
+      }
+    }else if(ex==='bybit'){
+      if(!settings.bybitKey || !settings.bybitSecret){
+        balValEl.textContent='এপিআই কি নেই';
+        balValEl.style.color='var(--r)';
+        return;
+      }
+      let res = await callBybitApi('/v5/account/wallet-balance', { accountType: 'UNIFIED' }, 'GET');
+      if (res.retCode !== 0 || !res.result || !res.result.list || res.result.list.length === 0) {
+        res = await callBybitApi('/v5/account/wallet-balance', { accountType: 'CONTRACT' }, 'GET');
+      }
+      if (res.retCode !== 0) {
+        throw new Error(res.retMsg || "Bybit API error");
+      }
+      if (res.result && res.result.list && res.result.list.length > 0) {
+        const acc = res.result.list[0];
+        if (acc.coin && Array.isArray(acc.coin)) {
+          const usdtCoin = acc.coin.find(c => c.coin === 'USDT');
+          if (usdtCoin) {
+            const bal = parseFloat(usdtCoin.walletBalance || usdtCoin.equity || 0);
+            balValEl.textContent = `$${bal.toFixed(2)} USDT`;
+            balValEl.style.color = 'var(--g)';
+            return;
+          }
+        }
+        if (acc.totalEquity) {
+          balValEl.textContent = `$${parseFloat(acc.totalEquity).toFixed(2)} USDT`;
+          balValEl.style.color = 'var(--g)';
+          return;
+        }
+      }
+      balValEl.textContent = '$0.00 USDT';
+      balValEl.style.color = 'var(--t2)';
+    }
+  }catch(err){
+    console.error("Balance fetch error:", err);
+    balValEl.textContent='এরর (এপিআই চেক করুন)';
+    balValEl.style.color='var(--r)';
   }
 }
 function handleStartTradeClick(){
@@ -2972,6 +3248,7 @@ async function periodicRefresh(){
   }
   if(price&&SR.R.length){renderPlan(price,SR);renderLad(price,SR);}
   calculateArbYield();
+  safe(updateApiBalance);
 }
 
 // ─── INIT ───
