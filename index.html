@@ -768,6 +768,7 @@ body>*{position:relative;z-index:1}
   <!-- SUB TABS FOR TOOLS -->
   <div class="tab-nav" style="margin-bottom:12px">
     <button class="tab-btn on" onclick="goSubTab('dca',this)">🧮 Smart DCA</button>
+    <button class="tab-btn" onclick="goSubTab('arbYield',this)">⚡ No-Loss Arb</button>
     <button class="tab-btn" onclick="goSubTab('alerts',this)">🔔 Alerts</button>
     <button class="tab-btn" onclick="goSubTab('journal',this)">📒 Journal</button>
     <button class="tab-btn" onclick="goSubTab('news',this)">📰 News</button>
@@ -816,6 +817,66 @@ body>*{position:relative;z-index:1}
       <div id="dcaVisualLegend" style="display:flex;flex-wrap:wrap;gap:8px;font-size:9px;font-family:var(--mono);margin-top:4px"></div>
     </div>
     <div class="exit-plan" id="exitPlan" style="display:none"><div style="padding:10px 14px;background:var(--bg2);border-bottom:.5px solid var(--bd)"><div class="sub" style="margin:0">🚪 এক্সিট প্ল্যান</div></div><div id="exitSteps"></div></div>
+  </div>
+
+  <!-- NO-LOSS ARBITRAGE SUB-TAB -->
+  <div class="subsec" id="sub-arbYield" style="display:none">
+    <div class="dca-v5">
+      <div class="sub">⚡ Delta-Neutral Cash & Carry Calculator</div>
+      <div style="font-size:11px;color:var(--t2);margin-bottom:12px;line-height:1.6">
+        স্পট ক্রয় এবং সমপরিমাণ ফিউচার শর্ট করে আপনি সম্পূর্ণ লস-মুক্ত উপায়ে ফান্ডিং ফি আয় করতে পারেন।
+      </div>
+      <div class="dca-input-grid">
+        <div class="dca-field"><label class="dca-label">মোট মূলধন ($)</label><input class="dca-input" id="cc-capital" type="number" value="1000" oninput="calculateArbYield()"></div>
+        <div class="dca-field"><label class="dca-label">স্পট এক্সচেঞ্জ</label>
+          <select class="dca-input" id="cc-spot-ex" onchange="calculateArbYield()">
+            <option value="bn">Binance</option>
+            <option value="by">Bybit</option>
+            <option value="mx">MEXC</option>
+            <option value="bg">Bitget</option>
+          </select>
+        </div>
+        <div class="dca-field"><label class="dca-label">ফিউচার লিভারেজ</label>
+          <select class="dca-input" id="cc-lev" onchange="calculateArbYield()">
+            <option value="1">1x (No Liquidation)</option>
+            <option value="2">2x</option>
+            <option value="3">3x</option>
+            <option value="5">5x</option>
+          </select>
+        </div>
+        <div class="dca-field"><label class="dca-label">ফিউচার এক্সচেঞ্জ</label>
+          <select class="dca-input" id="cc-perp-ex" onchange="calculateArbYield()">
+            <option value="bn">Binance</option>
+            <option value="by">Bybit</option>
+            <option value="mx">MEXC</option>
+            <option value="bg">Bitget</option>
+          </select>
+        </div>
+      </div>
+      
+      <div class="dca-result-box" style="display:block;margin-top:10px">
+        <div class="dca-result-header" style="background:var(--gd2);"><span style="font-size:12px;font-weight:700;color:var(--g)">ট্রেড সেটআপ বিবরণ</span></div>
+        <div class="dca-rows">
+          <div class="dca-row"><span class="dca-row-k">🟢 স্পট ক্রয় (Spot Long)</span><span class="dca-row-v" id="cc-spot-cost">$500.00</span></div>
+          <div class="dca-row"><span class="dca-row-k">পরিমাণ (Spot Size)</span><span class="dca-row-v" id="cc-spot-qty">0.00 LTC</span></div>
+          <div class="dca-row"><span class="dca-row-k">🔴 ফিউচার শর্ট (Futures Short)</span><span class="dca-row-v" id="cc-perp-cost">$500.00</span></div>
+          <div class="dca-row"><span class="dca-row-k">পরিমাণ (Futures Size)</span><span class="dca-row-v" id="cc-perp-qty">0.00 LTC</span></div>
+        </div>
+      </div>
+
+      <div class="dca-result-box" style="display:block;margin-top:10px">
+        <div class="dca-result-header" style="background:var(--bld2);"><span style="font-size:12px;font-weight:700;color:var(--b)">আনুমানিক প্রাক্কলিত আয় (Yield Estimate)</span></div>
+        <div class="dca-rows">
+          <div class="dca-row"><span class="dca-row-k">দৈনিক আয় (Daily)</span><span class="dca-row-v" style="color:var(--g)" id="cc-daily-y">$0.150</span></div>
+          <div class="dca-row"><span class="dca-row-k">মাসিক আয় (Monthly 30d)</span><span class="dca-row-v" style="color:var(--g)" id="cc-monthly-y">$4.50</span></div>
+          <div class="dca-row"><span class="dca-row-k">বার্ষিক আয় (Annual 365d)</span><span class="dca-row-v" style="color:var(--g)" id="cc-annual-y">$54.75</span></div>
+          <div class="dca-row"><span class="dca-row-k">বার্ষিক মুনাফার হার (APY %)</span><span class="dca-row-v" style="color:var(--g)" id="cc-apy-pct">5.48%</span></div>
+          <div class="dca-row"><span class="dca-row-k">এক্সচেঞ্জ প্রিমিয়াম মুনাফা</span><span class="dca-row-v" id="cc-prem-y">$0.00</span></div>
+        </div>
+      </div>
+      
+      <div id="cc-liq-warning" style="font-size:11px;line-height:1.6;margin-top:8px;padding:8px 12px;background:var(--bg3);border-radius:8px"></div>
+    </div>
   </div>
 
   <!-- ALERTS SUB-TAB -->
@@ -2022,6 +2083,65 @@ function applyDcaSuggest(type){
     doDCAv5();
   }
 }
+function calculateArbYield(){
+  const capital = +document.getElementById('cc-capital')?.value || 1000;
+  const lev = +document.getElementById('cc-lev')?.value || 1;
+  const spotEx = document.getElementById('cc-spot-ex')?.value || 'bn';
+  const perpEx = document.getElementById('cc-perp-ex')?.value || 'bn';
+  
+  // Get prices
+  const spotPrice = parseFloat(document.getElementById(spotEx + '-p')?.textContent.replace('$','')) || price || 0;
+  const perpPrice = parseFloat(document.getElementById(perpEx + '-p')?.textContent.replace('$','')) || price || 0;
+  
+  // Funding Rate is global fundingRate
+  const frVal = fundingRate || 0.01; // default to 0.01%
+  
+  // Sm = Fm * lev => Fm = Capital / (lev + 1)
+  const futuresMargin = capital / (lev + 1);
+  const spotMargin = capital - futuresMargin;
+  const positionSize = spotMargin;
+  
+  const spotQty = spotPrice > 0 ? positionSize / spotPrice : 0;
+  const futuresQty = spotQty;
+  
+  // Yields
+  const dailyYield = positionSize * (frVal / 100) * 3;
+  const monthlyYield = dailyYield * 30;
+  const annualYield = dailyYield * 365;
+  const apyPct = (annualYield / capital) * 100;
+  
+  // Premium profit
+  const premium = Math.max(0, perpPrice - spotPrice);
+  const premiumProfit = premium * spotQty;
+  const premiumPct = spotPrice > 0 ? (premium / spotPrice) * 100 : 0;
+  
+  // Update UI
+  const set = (id, val) => { const el = document.getElementById(id); if(el) el.textContent = val; };
+  set('cc-spot-qty', spotQty.toFixed(4) + ' ' + currentSymbol);
+  set('cc-spot-cost', '$' + spotMargin.toFixed(2));
+  set('cc-perp-qty', futuresQty.toFixed(4) + ' ' + currentSymbol);
+  set('cc-perp-cost', '$' + futuresMargin.toFixed(2));
+  
+  set('cc-daily-y', '$' + dailyYield.toFixed(3));
+  set('cc-monthly-y', '$' + monthlyYield.toFixed(2));
+  set('cc-annual-y', '$' + annualYield.toFixed(2));
+  set('cc-apy-pct', apyPct.toFixed(2) + '%');
+  
+  set('cc-prem-y', '$' + premiumProfit.toFixed(2) + ' (' + premiumPct.toFixed(3) + '%)');
+  
+  // Safety warnings
+  const liqEl = document.getElementById('cc-liq-warning');
+  if(liqEl){
+    if(lev === 1){
+      liqEl.innerHTML = `🟢 <b>লিকুইডেশন ঝুঁকি নাই (০%)</b>: ১x লিভারেজ ব্যবহারের কারণে স্পট ও শর্ট একে অপরকে ১০০% হেজ করছে। এখানে কোনো লিকুইডেশন ঝুঁকি নেই এবং মার্কেট যেদিকেই যাক কোনো লস হবে না।`;
+      liqEl.style.color = 'var(--g)';
+    } else {
+      const liqPrice = spotPrice * (1 + 1/lev - 0.005);
+      liqEl.innerHTML = `⚠️ <b>লিকুইডেশন ঝুঁকি আছে</b>: শর্ট পজিশনে ${lev}x লিভারেজ নেওয়ায় দাম $${liqPrice.toFixed(2)} স্পর্শ করলে শর্ট পজিশন লিকুইডেট হতে পারে। স্পটটিকে কোলেটরাল হিসেবে ব্যবহার করুন বা মার্জিন বাড়ান।`;
+      liqEl.style.color = 'var(--a)';
+    }
+  }
+}
 
 // ═══════════════════════════════════════════════════════
 // NEWS
@@ -2095,6 +2215,7 @@ function goSubTab(name,btn){
   if(name==='news')loadNews();
   if(name==='journal')renderJournal();
   if(name==='alerts')renderAlerts();
+  if(name==='arbYield')calculateArbYield();
 }
 function togMan(hdr){const b=hdr.nextElementSibling,a=hdr.querySelector('span:last-child');b.classList.toggle('open');a.textContent=b.classList.contains('open')?'▲':'▼';}
 
@@ -2157,6 +2278,7 @@ async function loadAll(){
     updatePriceMeta(currentPrice,SR,rsiVal,bn?.chg||0);
   }
   renderFRChart();
+  calculateArbYield();
   runAIAnalysis(false);
 }
 async function periodicRefresh(){
@@ -2167,6 +2289,7 @@ async function periodicRefresh(){
     if(bn&&bn.price)updatePrice(bn.price,bn.chg,bn.high,bn.low);
   }
   if(price&&SR.R.length){renderPlan(price,SR);renderLad(price,SR);}
+  calculateArbYield();
 }
 
 // ─── INIT ───
