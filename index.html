@@ -2029,29 +2029,39 @@ function tick(){
 // MAIN LOAD
 // ═══════════════════════════════════════════════════════
 async function loadAll(){
-  const res=await Promise.all([safe(getBN),safe(getBY),safe(getMX),safe(getBG)]);
-  const[bn,by,mx,bg]=res;
-  showEx('ex-bn','Binance',bn,!bn);showEx('ex-by','Bybit',by,!by);showEx('ex-mx','MEXC',mx,!mx);showEx('ex-bg','Bitget',bg,!bg);markBW();
+  // Fetch prices, metrics, and technical klines in parallel
+  const [tickerRes, metricsRes, klines] = await Promise.all([
+    Promise.all([safe(getBN), safe(getBY), safe(getMX), safe(getBG)]),
+    Promise.all([safe(getFunding), safe(getFundingHistory), safe(getLSRatio), safe(getOIDelta), safe(getOrderBook)]),
+    safe(() => getKlines('4h'))
+  ]);
+  
+  const [bn, by, mx, bg] = tickerRes;
+  showEx('ex-bn','Binance',bn,!bn);
+  showEx('ex-by','Bybit',by,!by);
+  showEx('ex-mx','MEXC',mx,!mx);
+  showEx('ex-bg','Bitget',bg,!bg);
+  markBW();
+  
   const px=bn?.price||by?.price||mx?.price||bg?.price||null;
   if(px&&!wsConn){updatePrice(px,bn?.chg||0,bn?.high||px,bn?.low||px);}
-  await getFunding();await getFundingHistory();
-  await getLSRatio();await getOIDelta();await getOrderBook();
-  // Load 4h klines for technicals
-  const klines=await safe(()=>getKlines('4h'));
-  if(klines&&klines.length>10&&price){
-    SR=calcSR(klines,price);
+  
+  const currentPrice = price || px;
+  if(klines&&klines.length>10&&currentPrice){
+    SR=calcSR(klines,currentPrice);
     rsiVal=calcRSI(klines.map(k=>parseFloat(k[4])));
     atrVal=calcATR(klines);
-    renderRSI(rsiVal);renderATR(atrVal,price);
-    renderLad(price,SR);renderPlan(price,SR);
-    updateConf(price,SR,rsiVal,bn?.chg||0);
-    updatePriceMeta(price,SR,rsiVal,bn?.chg||0);
+    renderRSI(rsiVal);renderATR(atrVal,currentPrice);
+    renderLad(currentPrice,SR);renderPlan(currentPrice,SR);
+    updateConf(currentPrice,SR,rsiVal,bn?.chg||0);
+    updatePriceMeta(currentPrice,SR,rsiVal,bn?.chg||0);
   }
   renderFRChart();
   runAIAnalysis(false);
 }
 async function periodicRefresh(){
-  await getLSRatio();await getOIDelta();await getOrderBook();
+  // Fetch metrics in parallel
+  await Promise.all([safe(getLSRatio), safe(getOIDelta), safe(getOrderBook)]);
   if(!wsConn||(wsConn&&wsConn.readyState!==1)){
     const bn=await safe(getBN);
     if(bn&&bn.price)updatePrice(bn.price,bn.chg,bn.high,bn.low);
