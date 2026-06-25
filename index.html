@@ -745,8 +745,23 @@ body>*{position:relative;z-index:1}
     </select>
   </div>
   <div id="panel-open">
-    <button class="btn btng" onclick="startTrade()">▶ ট্রেড OPEN করুন · Start Trade</button>
-    <div style="font-size:11px;color:var(--t3);text-align:center;margin-top:6px">লং + শর্ট দুটো খোলার পর এই বাটন চাপুন</div>
+    <div style="background:var(--bg3);border:.5px solid var(--bd2);border-radius:10px;padding:12px;margin-bottom:10px;display:flex;flex-direction:column;gap:8px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:11px;color:var(--t2);font-weight:700">🤖 API অটো-ট্রেড (Auto-Execute)</span>
+        <input type="checkbox" id="api-exec-check" style="width:16px;height:16px;cursor:pointer" onchange="toggleApiExecUi()">
+      </div>
+      <div id="api-exec-fields" style="display:none;flex-direction:column;gap:6px;border-top:.5px solid var(--bd);padding-top:6px">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:6px">
+          <span style="font-size:10px;color:var(--t3)">ট্রেডিং এক্সচেঞ্জ</span>
+          <select id="api-exec-exchange" class="dca-input" style="width:140px;padding:4px 6px;font-size:11px;height:26px">
+            <option value="binance">Binance</option>
+            <option value="bybit">Bybit</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <button class="btn btng" onclick="handleStartTradeClick()">▶ ট্রেড OPEN করুন · Start Trade</button>
+    <div style="font-size:11px;color:var(--t3);text-align:center;margin-top:6px" id="trade-btn-desc">লং + শর্ট দুটো খোলার পর এই বাটন চাপুন</div>
   </div>
   <div id="panel-active" style="display:none" class="tpanel">
     <div style="font-size:11px;color:var(--g);font-weight:700;margin-bottom:10px">✅ ট্রেড সক্রিয় · Trade Active</div>
@@ -995,6 +1010,28 @@ body>*{position:relative;z-index:1}
       <input class="sett-inp" id="settTgChatId" type="text" placeholder="e.g. 987654321">
     </div>
     
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+      <div class="sett-field" style="margin-bottom:0">
+        <label class="sett-label">Binance API Key</label>
+        <input class="sett-inp" id="settBinanceKey" type="password" placeholder="Binance API Key...">
+      </div>
+      <div class="sett-field" style="margin-bottom:0">
+        <label class="sett-label">Binance API Secret</label>
+        <input class="sett-inp" id="settBinanceSecret" type="password" placeholder="Binance API Secret...">
+      </div>
+    </div>
+    
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+      <div class="sett-field" style="margin-bottom:0">
+        <label class="sett-label">Bybit API Key</label>
+        <input class="sett-inp" id="settBybitKey" type="password" placeholder="Bybit API Key...">
+      </div>
+      <div class="sett-field" style="margin-bottom:0">
+        <label class="sett-label">Bybit API Secret</label>
+        <input class="sett-inp" id="settBybitSecret" type="password" placeholder="Bybit API Secret...">
+      </div>
+    </div>
+    
     <div class="sett-row" style="display:flex;align-items:center;justify-content:space-between">
       <span class="sett-row-lbl">🔔 অডিও অ্যালার্ট (TTS)</span>
       <div style="display:flex;align-items:center;gap:10px">
@@ -1047,7 +1084,7 @@ try{const j=localStorage.getItem('ltc_j_v7');if(j)journal=JSON.parse(j);}catch(e
 try{const a=localStorage.getItem('ltc_alerts_v7');if(a)priceAlerts=JSON.parse(a);}catch(e){}
 
 // ─── SETTINGS MANAGEMENT ───
-let settings={anthropicKey:'',cryptocompareKey:'',tgToken:'',tgChatId:'',audioAlerts:false};
+let settings={anthropicKey:'',cryptocompareKey:'',tgToken:'',tgChatId:'',audioAlerts:false,binanceKey:'',binanceSecret:'',bybitKey:'',bybitSecret:''};
 try{const s=localStorage.getItem('ltc_settings_v7');if(s)settings=JSON.parse(s);}catch(e){}
 
 function toggleSettings(show){
@@ -1060,6 +1097,10 @@ function toggleSettings(show){
     document.getElementById('settTgToken').value=settings.tgToken||'';
     document.getElementById('settTgChatId').value=settings.tgChatId||'';
     document.getElementById('settAudioAlerts').checked=settings.audioAlerts||false;
+    document.getElementById('settBinanceKey').value=settings.binanceKey||'';
+    document.getElementById('settBinanceSecret').value=settings.binanceSecret||'';
+    document.getElementById('settBybitKey').value=settings.bybitKey||'';
+    document.getElementById('settBybitSecret').value=settings.bybitSecret||'';
   }
 }
 function saveSettings(){
@@ -1068,6 +1109,10 @@ function saveSettings(){
   settings.tgToken=document.getElementById('settTgToken').value.trim();
   settings.tgChatId=document.getElementById('settTgChatId').value.trim();
   settings.audioAlerts=document.getElementById('settAudioAlerts').checked;
+  settings.binanceKey=document.getElementById('settBinanceKey').value.trim();
+  settings.binanceSecret=document.getElementById('settBinanceSecret').value.trim();
+  settings.bybitKey=document.getElementById('settBybitKey').value.trim();
+  settings.bybitSecret=document.getElementById('settBybitSecret').value.trim();
   try{
     localStorage.setItem('ltc_settings_v7',JSON.stringify(settings));
     showToast('✅ সেটিংস সেভ করা হয়েছে!','above');
@@ -1991,6 +2036,287 @@ function saveJEntry(){
   if(journal.length>100)journal.pop();
   try{localStorage.setItem('ltc_j_v7',JSON.stringify(journal));}catch(e){}
   closeJModal();renderJournal();
+}
+function toggleApiExecUi(){
+  const chk=document.getElementById('api-exec-check');
+  const fields=document.getElementById('api-exec-fields');
+  const desc=document.getElementById('trade-btn-desc');
+  if(chk&&fields){
+    fields.style.display=chk.checked?'flex':'none';
+    if(desc){
+      desc.textContent=chk.checked?'সরাসরি এপিআই এর মাধ্যমে স্পট ও ফিউচার পজিশন ওপেন হবে':'লং + শর্ট দুটো খোলার পর এই বাটন চাপুন';
+    }
+  }
+}
+async function hmacSha256(secret,message){
+  const encoder=new TextEncoder();
+  const keyData=encoder.encode(secret);
+  const messageData=encoder.encode(message);
+  const cryptoKey=await window.crypto.subtle.importKey(
+    "raw",
+    keyData,
+    {name:"HMAC",hash:"SHA-256"},
+    false,
+    ["sign"]
+  );
+  const signature=await window.crypto.subtle.sign(
+    "HMAC",
+    cryptoKey,
+    messageData
+  );
+  return Array.from(new Uint8Array(signature))
+    .map(b=>b.toString(16).padStart(2,'0'))
+    .join('');
+}
+async function callBinanceApi(baseUrl,path,queryParamsObj,method='POST'){
+  const timestamp=Date.now().toString();
+  const params={...queryParamsObj,timestamp:timestamp,recvWindow:"10000"};
+  const queryString=Object.keys(params)
+    .map(key=>`${key}=${encodeURIComponent(params[key])}`)
+    .join('&');
+  const signature=await hmacSha256(settings.binanceSecret,queryString);
+  const fullQueryString=queryString+'&signature='+signature;
+  const targetUrl=baseUrl+path+'?'+fullQueryString;
+  const proxyUrl='/proxy/'+encodeURIComponent(targetUrl);
+  const headers={
+    'X-MBX-APIKEY':settings.binanceKey
+  };
+  const r=await fetch(proxyUrl,{
+    method:method,
+    headers:headers
+  });
+  return await r.json();
+}
+async function callBybitApi(path,bodyObj){
+  const timestamp=Date.now().toString();
+  const recvWindow="10000";
+  const bodyStr=JSON.stringify(bodyObj);
+  const msg=timestamp+settings.bybitKey+recvWindow+bodyStr;
+  const signature=await hmacSha256(settings.bybitSecret,msg);
+  const headers={
+    'Content-Type':'application/json',
+    'X-BAPI-API-KEY':settings.bybitKey,
+    'X-BAPI-SIGN':signature,
+    'X-BAPI-TIMESTAMP':timestamp,
+    'X-BAPI-RECV-WINDOW':recvWindow
+  };
+  const targetUrl='https://api.bybit.com'+path;
+  const proxyUrl='/proxy/'+encodeURIComponent(targetUrl);
+  const r=await fetch(proxyUrl,{
+    method:'POST',
+    headers:headers,
+    body:bodyStr
+  });
+  return await r.json();
+}
+function formatQty(coin,qty){
+  if(coin==='BTC')return qty.toFixed(3);
+  if(coin==='ETH')return qty.toFixed(2);
+  if(coin==='SOL')return qty.toFixed(2);
+  if(coin==='LTC')return qty.toFixed(2);
+  if(coin==='XRP')return qty.toFixed(0);
+  return qty.toFixed(1);
+}
+function handleStartTradeClick(){
+  const apiCheck=document.getElementById('api-exec-check')?.checked;
+  if(!apiCheck){
+    startTrade();
+    return;
+  }
+  const ex=document.getElementById('api-exec-exchange')?.value;
+  if(ex==='binance'&&(!settings.binanceKey||!settings.binanceSecret)){
+    showToast('❌ সেটিংসে Binance API Key ও Secret কনফিগার করুন!','below');
+    return;
+  }
+  if(ex==='bybit'&&(!settings.bybitKey||!settings.bybitSecret)){
+    showToast('❌ সেটিংসে Bybit API Key ও Secret কনফিগার করুন!','below');
+    return;
+  }
+  showApiConfirmModal();
+}
+function showApiConfirmModal(){
+  const {lev,lm,sm}=getPlanConfig();
+  const px=price||0;
+  if(!px){
+    showToast("❌ মার্কেট প্রাইজ লোড হয়নি। অনুগ্রহ করে অপেক্ষা করুন।","below");
+    return;
+  }
+  const ex=document.getElementById('api-exec-exchange')?.value;
+  const exName=ex==='binance'?'Binance Futures':'Bybit Futures';
+  const spotUsdt=(lm*lev).toFixed(2);
+  const spotQty=((lm*lev)/px).toFixed(4);
+  const futUsdt=(sm*lev).toFixed(2);
+  const futQty=((sm*lev)/px).toFixed(4);
+  const overlay=document.createElement('div');
+  overlay.id='api-confirm-modal';
+  overlay.style='position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(5px);';
+  overlay.innerHTML=`
+    <div style="background:var(--bg2);border:.5px solid var(--bd2);border-radius:12px;width:100%;max-width:400px;overflow:hidden;box-shadow:0 0 30px rgba(0,0,0,0.5)">
+      <div style="background:linear-gradient(135deg, var(--r), var(--b));padding:14px;color:#fff;font-weight:700;font-size:14px;text-align:center;letter-spacing:1px">
+        🤖 API ট্রেড এক্সিকিউশন নিশ্চিতকরণ
+      </div>
+      <div style="padding:16px;display:flex;flex-direction:column;gap:12px;color:var(--t)">
+        <div style="font-size:11px;color:var(--t2);line-height:1.5">
+          নিচের অর্ডারগুলো সরাসরি আপনার <b>${exName}</b> একাউন্টে প্লেস করা হবে। অনুগ্রহ করে সতর্কতার সাথে চেক করুন:
+        </div>
+        <div style="background:var(--bg3);border-radius:8px;padding:10px;border:.5px solid var(--bd2);display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span style="font-size:11px;color:var(--t3)">ট্রেডিং পেয়ার:</span>
+            <span style="font-family:var(--mono);font-size:12px;font-weight:700;color:var(--g)">${currentSymbol}USDT</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span style="font-size:11px;color:var(--t3)">লিভারেজ (Leverage):</span>
+            <span style="font-family:var(--mono);font-size:12px;font-weight:700;color:var(--a)">${lev}x</span>
+          </div>
+          <div style="border-top:.5px solid var(--bd);margin:4px 0"></div>
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span style="font-size:11px;color:var(--g)">🟢 স্পট বাই (Spot Long):</span>
+            <span style="font-family:var(--mono);font-size:12px;font-weight:700">$${spotUsdt} (${spotQty} ${currentSymbol})</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span style="font-size:11px;color:var(--r)">🔴 ফিউচার শর্ট (Futures Short):</span>
+            <span style="font-family:var(--mono);font-size:12px;font-weight:700">$${futUsdt} (${futQty} ${currentSymbol})</span>
+          </div>
+        </div>
+        <div style="font-size:10px;color:var(--r);background:rgba(255,45,85,0.05);border:.5px solid var(--r);border-radius:6px;padding:8px;line-height:1.4">
+          ⚠️ <b>সতর্কতা:</b> এটি মার্কেট অর্ডারের মাধ্যমে রিয়েল পজিশন ওপেন করবে। এক্সচেঞ্জে পর্যাপ্ত মার্জিন থাকা আবশ্যক।
+        </div>
+      </div>
+      <div style="display:flex;gap:1px;background:var(--bd);border-top:.5px solid var(--bd2)">
+        <button onclick="executeApiHedge()" style="flex:1.2;padding:12px;background:var(--g);color:#000;border:none;font-weight:700;font-size:12px;cursor:pointer">✓ এক্সিকিউট করুন (Execute)</button>
+        <button onclick="closeApiConfirmModal()" style="flex:0.8;padding:12px;background:var(--bg3);color:var(--t2);border:none;font-weight:700;font-size:12px;cursor:pointer">বাতিল (Cancel)</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+}
+function closeApiConfirmModal(){
+  const el=document.getElementById('api-confirm-modal');
+  if(el)el.remove();
+}
+async function executeApiHedge(){
+  const modalBody=document.querySelector('#api-confirm-modal > div');
+  if(!modalBody)return;
+  modalBody.innerHTML=`
+    <div style="background:var(--bg2);border:.5px solid var(--bd2);border-radius:12px;width:100%;max-width:400px;overflow:hidden;box-shadow:0 0 30px rgba(0,0,0,0.5)">
+      <div style="background:linear-gradient(135deg, var(--r), var(--b));padding:14px;color:#fff;font-weight:700;font-size:14px;text-align:center;letter-spacing:1px">
+        🤖 অটো-ট্রেড এক্সিকিউট হচ্ছে...
+      </div>
+      <div style="padding:24px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;color:var(--t)">
+        <span class="spin" style="width:24px;height:24px;border:3px solid var(--t3);border-top-color:var(--g);border-radius:50%;display:inline-block;animation:spin 1s linear infinite"></span>
+        <div id="api-status-msg" style="font-size:12px;color:var(--t2);text-align:center">
+          অর্ডার প্লেস করার কাজ শুরু হচ্ছে...
+        </div>
+      </div>
+    </div>
+  `;
+  const updateStatus=(msg)=>{
+    const el=document.getElementById('api-status-msg');
+    if(el)el.textContent=msg;
+  };
+  const {lev,lm,sm}=getPlanConfig();
+  const px=price||0;
+  const symbol=currentSymbol+'USDT';
+  const ex=document.getElementById('api-exec-exchange')?.value;
+  try{
+    if(ex==='binance'){
+      updateStatus("🟢 ১. বাইনান্স স্পট বাই অর্ডার পাঠানো হচ্ছে...");
+      const spotUsdt=(lm*lev).toFixed(2);
+      const spotRes=await callBinanceApi('https://api.binance.com','/api/v3/order',{
+        symbol:symbol,
+        side:'BUY',
+        type:'MARKET',
+        quoteOrderQty:spotUsdt
+      });
+      if(spotRes.msg||spotRes.code){
+        throw new Error(`Spot Error: ${spotRes.msg || JSON.stringify(spotRes)}`);
+      }
+      const filledQty=parseFloat(spotRes.executedQty)||((lm*lev)/px);
+      updateStatus(`🟢 স্পট ফিল্ড সাইজ: ${filledQty.toFixed(4)} ${currentSymbol}`);
+      updateStatus("🔴 ২. ফিউচার লিভারেজ সেট করা হচ্ছে...");
+      try{
+        await callBinanceApi('https://fapi.binance.com','/fapi/v1/leverage',{
+          symbol:symbol,
+          leverage:lev.toString()
+        });
+      }catch(e){}
+      updateStatus("🔴 ৩. ফিউচার শর্ট অর্ডার পাঠানো হচ্ছে...");
+      const futuresRes=await callBinanceApi('https://fapi.binance.com','/fapi/v1/order',{
+        symbol:symbol,
+        side:'SELL',
+        type:'MARKET',
+        quantity:formatQty(currentSymbol,filledQty)
+      });
+      if(futuresRes.msg||futuresRes.code){
+        throw new Error(`Futures Error: ${futuresRes.msg || JSON.stringify(futuresRes)}`);
+      }
+      showToast(`✅ Binance: Spot Buy & Futures Short সফলভাবে সম্পন্ন হয়েছে!`,'above');
+    }else if(ex==='bybit'){
+      updateStatus("🔴 ১. বাইবিট ফিউচার লিভারেজ সেট করা হচ্ছে...");
+      try{
+        await callBybitApi('/v5/position/set-leverage',{
+          category:'linear',
+          symbol:symbol,
+          buyLeverage:lev.toString(),
+          sellLeverage:lev.toString()
+        });
+      }catch(e){}
+      updateStatus("🟢 ২. বাইবিট স্পট বাই অর্ডার পাঠানো হচ্ছে...");
+      const spotUsdt=(lm*lev).toFixed(2);
+      const spotRes=await callBybitApi('/v5/order/create',{
+        category:'spot',
+        symbol:symbol,
+        side:'Buy',
+        orderType:'Market',
+        qty:spotUsdt
+      });
+      if(spotRes.retCode!==0){
+        throw new Error(`Spot Error: ${spotRes.retMsg || JSON.stringify(spotRes)}`);
+      }
+      let filledQty=((lm*lev)/px);
+      if(spotRes.result&&spotRes.result.qty){
+        filledQty=parseFloat(spotRes.result.qty);
+      }
+      updateStatus(`🟢 স্পট ফিল্ড সাইজ: ${filledQty.toFixed(4)} ${currentSymbol}`);
+      updateStatus("🔴 ৩. বাইবিট ফিউচার শর্ট অর্ডার পাঠানো হচ্ছে...");
+      const futuresRes=await callBybitApi('/v5/order/create',{
+        category:'linear',
+        symbol:symbol,
+        side:'Sell',
+        orderType:'Market',
+        qty:formatQty(currentSymbol,filledQty)
+      });
+      if(futuresRes.retCode!==0){
+        throw new Error(`Futures Error: ${futuresRes.retMsg || JSON.stringify(futuresRes)}`);
+      }
+      showToast(`✅ Bybit: Spot Buy & Futures Short সফলভাবে সম্পন্ন হয়েছে!`,'above');
+    }
+    closeApiConfirmModal();
+    startTrade();
+  }catch(err){
+    console.error("API Execution error:",err);
+    modalBody.innerHTML=`
+      <div style="background:var(--bg2);border:.5px solid var(--bd2);border-radius:12px;width:100%;max-width:400px;overflow:hidden;box-shadow:0 0 30px rgba(0,0,0,0.5)">
+        <div style="background:var(--r);padding:14px;color:#fff;font-weight:700;font-size:14px;text-align:center;letter-spacing:1px">
+          ✕ এপিআই এক্সিকিউশন ব্যর্থ হয়েছে
+        </div>
+        <div style="padding:16px;color:var(--t);display:flex;flex-direction:column;gap:12px">
+          <div style="font-size:12px;color:var(--r);line-height:1.5;word-break:break-all">
+            ${err.message}
+          </div>
+          <div style="font-size:11px;color:var(--t2);line-height:1.4">
+            অনুগ্রহ করে চেক করুন:
+            <br>১. এপিআই কি ও সিক্রেট সঠিক আছে কিনা।
+            <br>২. একاونটে পর্যাপ্ত ব্যালেন্স আছে কিনা।
+            <br>৩. লোকাল CORS সার্ভার সচল আছে কিনা।
+          </div>
+        </div>
+        <div style="padding:12px;text-align:center;background:var(--bg3);border-top:.5px solid var(--bd2)">
+          <button onclick="closeApiConfirmModal()" style="padding:8px 16px;background:var(--bg2);color:var(--t);border:.5px solid var(--bd2);border-radius:6px;font-weight:700;cursor:pointer">ঠিক আছে (OK)</button>
+        </div>
+      </div>
+    `;
+  }
 }
 function startTrade(){
   tradeT=Date.now();tradePx=price;longEntry=price;shortEntry=price;
