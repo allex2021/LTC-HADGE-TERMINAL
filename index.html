@@ -647,6 +647,9 @@ body>*{position:relative;z-index:1}
       <div class="pfield"><label class="plabel">শর্ট মার্জিন ($)</label><input class="pinput" id="pl-sm" type="number" value="40" oninput="onPlanChange()"></div>
       <div class="pfield"><label class="plabel">রিজার্ভ ($)</label><input class="pinput" id="pl-res" type="number" value="10" readonly style="opacity:.6"></div>
     </div>
+    <button class="btn btng" onclick="applySmartHedgeRatio()" style="width:100%;margin-top:10px;font-size:10px;font-weight:700;background:linear-gradient(135deg,var(--b),var(--g));color:var(--bg);border:none;padding:8px 12px;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 0 10px rgba(0,196,255,0.2)">
+      <span>🤖 AI Smart-Ratio Auto Size</span>
+    </button>
   </div>
 
   <!-- LIVE PNL -->
@@ -2082,6 +2085,65 @@ function applyDcaSuggest(type){
     el.value=amt;
     doDCAv5();
   }
+}
+function applySmartHedgeRatio(){
+  const lmEl = document.getElementById('pl-lm');
+  const smEl = document.getElementById('pl-sm');
+  const resEl = document.getElementById('pl-res');
+  if(!lmEl || !smEl) return;
+  
+  const currentLM = parseFloat(lmEl.value) || 50;
+  const currentSM = parseFloat(smEl.value) || 40;
+  const currentRes = parseFloat(resEl?.value) || 10;
+  const totalCapital = currentLM + currentSM + currentRes;
+  
+  let biasScore = 0;
+  
+  // 1. RSI contribution (neutral = 50)
+  const rsi = rsiVal || 50;
+  biasScore += (50 - rsi) * 1.5; 
+  
+  // 2. Order book imbalance contribution
+  const obBid = document.getElementById('obBid');
+  let bidPct = 50;
+  if(obBid && obBid.style.width) {
+    bidPct = parseFloat(obBid.style.width) || 50;
+  }
+  biasScore += (bidPct - 50) * 2.0;
+  
+  // 3. Funding Rate contribution
+  const fr = fundingRate || 0.01;
+  biasScore -= fr * 100;
+  
+  // 4. Price change 24h contribution
+  const bnEl = document.getElementById('ex-bn');
+  let chgPct = 0;
+  if(bnEl){
+    const cel = document.getElementById('bn-c');
+    if(cel) chgPct = parseFloat(cel.textContent.replace('%','')) || 0;
+  }
+  biasScore -= chgPct * 5;
+  
+  // Constrain biasScore between -40 and +40 to keep hedge safe
+  biasScore = Math.max(-40, Math.min(40, biasScore));
+  
+  // Base split is 45% Long, 45% Short, 10% Reserve
+  const shift = biasScore * 0.5; // shift up to 20%
+  const longPct = 45 + shift;
+  const shortPct = 45 - shift;
+  
+  const finalLM = Math.max(5, Math.round(totalCapital * (longPct / 100)));
+  const finalSM = Math.max(5, Math.round(totalCapital * (shortPct / 100)));
+  const finalRes = Math.max(0, totalCapital - (finalLM + finalSM));
+  
+  lmEl.value = finalLM;
+  smEl.value = finalSM;
+  if(resEl) resEl.value = finalRes;
+  
+  onPlanChange();
+  
+  const dir = biasScore > 5 ? 'Bullish (LONG dominant)' : biasScore < -5 ? 'Bearish (SHORT dominant)' : 'Neutral (50/50)';
+  showToast(`🤖 AI Size Set: ${finalLM}$ L / ${finalSM}$ S (${dir})`, 'above');
 }
 function calculateArbYield(){
   const capital = +document.getElementById('cc-capital')?.value || 1000;
