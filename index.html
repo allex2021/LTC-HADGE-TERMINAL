@@ -1644,6 +1644,26 @@ function renderFRChart(){
 }
 
 // ─── PLAN & RISK ───
+function getPlanTargets(px){
+  if(!px)return null;
+  const atrPct=atrVal&&px?atrVal/px:0;
+  const ltp1pct=atrPct>0?Math.min(Math.max(atrPct,0.01),0.04):0.015;
+  const ltp2pct=atrPct>0?Math.min(Math.max(atrPct,0.015),0.06)*1.8:0.028;
+  const stp1pct=atrPct>0?Math.min(Math.max(atrPct,0.008),0.03):0.013;
+  const stp2pct=atrPct>0?Math.min(Math.max(atrPct,0.012),0.05)*1.8:0.025;
+  const ltp1=px*(1+ltp1pct),ltp2=px*(1+ltp2pct);
+  const stp1=px*(1-stp1pct),stp2=px*(1-stp2pct);
+  const lsl=px*(1-0.04),ssl=px*(1+0.035);
+  return {ltp1,ltp2,stp1,stp2,lsl,ssl};
+}
+function formatPrice(coin,val){
+  if(coin==='BTC')return val.toFixed(1);
+  if(coin==='ETH')return val.toFixed(2);
+  if(coin==='SOL')return val.toFixed(2);
+  if(coin==='LTC')return val.toFixed(2);
+  if(coin==='XRP')return val.toFixed(4);
+  return val.toFixed(2);
+}
 function onPlanChange(){if(price)renderPlan(price,SR);}
 function getPlanConfig(){
   const lev=+(document.getElementById('pl-lev')?.value||20);
@@ -1658,14 +1678,9 @@ function renderPlan(px,sr){
   if(!px)return;
   const{lev,lm,sm}=getPlanConfig();
   const lq=lm*lev/px,sq=sm*lev/px;
-  const atrPct=atrVal&&px?atrVal/px:0;
-  const ltp1pct=atrPct>0?Math.min(Math.max(atrPct,0.01),0.04):0.015;
-  const ltp2pct=atrPct>0?Math.min(Math.max(atrPct,0.015),0.06)*1.8:0.028;
-  const stp1pct=atrPct>0?Math.min(Math.max(atrPct,0.008),0.03):0.013;
-  const stp2pct=atrPct>0?Math.min(Math.max(atrPct,0.012),0.05)*1.8:0.025;
-  const ltp1=px*(1+ltp1pct),ltp2=px*(1+ltp2pct);
-  const stp1=px*(1-stp1pct),stp2=px*(1-stp2pct);
-  const lsl=px*(1-0.04),ssl=px*(1+0.035);
+  const targets=getPlanTargets(px);
+  if(!targets)return;
+  const {ltp1,ltp2,stp1,stp2,lsl,ssl}=targets;
   const llq=px*(1-1/lev+0.005),slq=px*(1+1/lev-0.005);
   const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
   set('ll-e','$'+px.toFixed(2));set('ll-q',lq.toFixed(4)+' '+currentSymbol);
@@ -2095,12 +2110,25 @@ function formatQty(coin,qty){
     showToast("❌ মার্কেট প্রাইজ লোড হয়নি। অনুগ্রহ করে অপেক্ষা করুন।","below");
     return;
   }
+  const targets=getPlanTargets(px);
+  if(!targets){
+    showToast("❌ টার্গেট প্রাইজ হিসাব করা যায়নি।","below");
+    return;
+  }
   const ex=document.getElementById('api-exec-exchange')?.value;
   const exName=ex==='binance'?'Binance Futures':'Bybit Futures';
   const longUsdt=(lm*lev).toFixed(2);
   const longQty=((lm*lev)/px).toFixed(4);
   const shortUsdt=(sm*lev).toFixed(2);
   const shortQty=((sm*lev)/px).toFixed(4);
+  
+  const ltp1Str=formatPrice(currentSymbol,targets.ltp1);
+  const ltp2Str=formatPrice(currentSymbol,targets.ltp2);
+  const lslStr=formatPrice(currentSymbol,targets.lsl);
+  const stp1Str=formatPrice(currentSymbol,targets.stp1);
+  const stp2Str=formatPrice(currentSymbol,targets.stp2);
+  const sslStr=formatPrice(currentSymbol,targets.ssl);
+
   const overlay=document.createElement('div');
   overlay.id='api-confirm-modal';
   overlay.style='position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(5px);';
@@ -2127,9 +2155,34 @@ function formatQty(coin,qty){
             <span style="font-size:11px;color:var(--g)">🟢 ফিউচার লং (Futures Long):</span>
             <span style="font-family:var(--mono);font-size:12px;font-weight:700">$${longUsdt} (${longQty} ${currentSymbol})</span>
           </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding-left:12px;font-size:11px">
+            <span style="color:var(--t3)">└ SL (Stop Loss):</span>
+            <span style="font-family:var(--mono);font-weight:700;color:var(--r)">$${lslStr}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding-left:12px;font-size:11px">
+            <span style="color:var(--t3)">└ TP1 (50%):</span>
+            <span style="font-family:var(--mono);font-weight:700;color:var(--g)">$${ltp1Str}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding-left:12px;font-size:11px">
+            <span style="color:var(--t3)">└ TP2 (50%):</span>
+            <span style="font-family:var(--mono);font-weight:700;color:var(--g)">$${ltp2Str}</span>
+          </div>
+          <div style="border-top:.5px solid var(--bd);margin:4px 0"></div>
           <div style="display:flex;justify-content:space-between;align-items:center">
             <span style="font-size:11px;color:var(--r)">🔴 ফিউচার শর্ট (Futures Short):</span>
             <span style="font-family:var(--mono);font-size:12px;font-weight:700">$${shortUsdt} (${shortQty} ${currentSymbol})</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding-left:12px;font-size:11px">
+            <span style="color:var(--t3)">└ SL (Stop Loss):</span>
+            <span style="font-family:var(--mono);font-weight:700;color:var(--r)">$${sslStr}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding-left:12px;font-size:11px">
+            <span style="color:var(--t3)">└ TP1 (50%):</span>
+            <span style="font-family:var(--mono);font-weight:700;color:var(--g)">$${stp1Str}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding-left:12px;font-size:11px">
+            <span style="color:var(--t3)">└ TP2 (50%):</span>
+            <span style="font-family:var(--mono);font-weight:700;color:var(--g)">$${stp2Str}</span>
           </div>
         </div>
         <div style="font-size:10px;color:var(--r);background:rgba(255,45,85,0.05);border:.5px solid var(--r);border-radius:6px;padding:8px;line-height:1.4">
@@ -2174,6 +2227,13 @@ async function executeApiHedge(){
   const ex=document.getElementById('api-exec-exchange')?.value;
   const longQty=((lm*lev)/px);
   const shortQty=((sm*lev)/px);
+  
+  const targets=getPlanTargets(px);
+  if(!targets){
+    throw new Error("টার্গেট প্রাইজ হিসাব করা যায়নি।");
+  }
+  const {ltp1,ltp2,stp1,stp2,lsl,ssl}=targets;
+
   try{
     if(ex==='binance'){
       updateStatus("🔴 ১. বাইনান্স ফিউচার লিভারেজ সেট করা হচ্ছে...");
@@ -2183,7 +2243,7 @@ async function executeApiHedge(){
           leverage:lev.toString()
         });
       }catch(e){}
-      updateStatus("⚡ ২. ফিউচার লং ও শর্ট অর্ডার পাঠানো হচ্ছে...");
+      updateStatus("⚡ ২. ফিউচার লং ও শর্ট পজিশন ওপেন করা হচ্ছে...");
       const [longRes,shortRes]=await Promise.all([
         callBinanceApi('https://fapi.binance.com','/fapi/v1/order',{
           symbol:symbol,
@@ -2206,7 +2266,75 @@ async function executeApiHedge(){
       if(shortRes.msg||shortRes.code){
         throw new Error(`Short Order Error: ${shortRes.msg || JSON.stringify(shortRes)}`);
       }
-      showToast(`✅ Binance: Futures Long & Futures Short সফলভাবে সম্পন্ন হয়েছে!`,'above');
+      
+      updateStatus("🎯 ৩. বাইনান্স স্বয়ংক্রিয় TP/SL অর্ডার সেট করা হচ্ছে...");
+      try {
+        await Promise.all([
+          // Long SL
+          callBinanceApi('https://fapi.binance.com','/fapi/v1/order',{
+            symbol:symbol,
+            side:'SELL',
+            positionSide:'LONG',
+            type:'STOP_MARKET',
+            stopPrice:formatPrice(currentSymbol,lsl),
+            closePosition:'true'
+          }),
+          // Long TP1 (50%)
+          callBinanceApi('https://fapi.binance.com','/fapi/v1/order',{
+            symbol:symbol,
+            side:'SELL',
+            positionSide:'LONG',
+            type:'LIMIT',
+            quantity:formatQty(currentSymbol,longQty/2),
+            price:formatPrice(currentSymbol,ltp1),
+            timeInForce:'GTC'
+          }),
+          // Long TP2 (50%)
+          callBinanceApi('https://fapi.binance.com','/fapi/v1/order',{
+            symbol:symbol,
+            side:'SELL',
+            positionSide:'LONG',
+            type:'LIMIT',
+            quantity:formatQty(currentSymbol,longQty/2),
+            price:formatPrice(currentSymbol,ltp2),
+            timeInForce:'GTC'
+          }),
+          // Short SL
+          callBinanceApi('https://fapi.binance.com','/fapi/v1/order',{
+            symbol:symbol,
+            side:'BUY',
+            positionSide:'SHORT',
+            type:'STOP_MARKET',
+            stopPrice:formatPrice(currentSymbol,ssl),
+            closePosition:'true'
+          }),
+          // Short TP1 (50%)
+          callBinanceApi('https://fapi.binance.com','/fapi/v1/order',{
+            symbol:symbol,
+            side:'BUY',
+            positionSide:'SHORT',
+            type:'LIMIT',
+            quantity:formatQty(currentSymbol,shortQty/2),
+            price:formatPrice(currentSymbol,stp1),
+            timeInForce:'GTC'
+          }),
+          // Short TP2 (50%)
+          callBinanceApi('https://fapi.binance.com','/fapi/v1/order',{
+            symbol:symbol,
+            side:'BUY',
+            positionSide:'SHORT',
+            type:'LIMIT',
+            quantity:formatQty(currentSymbol,shortQty/2),
+            price:formatPrice(currentSymbol,stp2),
+            timeInForce:'GTC'
+          })
+        ]);
+        showToast(`✅ Binance: Futures Long, Short এবং সকল TP/SL সফলভাবে প্লেস হয়েছে!`,'above');
+      } catch(tpSlErr) {
+        console.error("TP/SL Placement error:", tpSlErr);
+        showToast(`⚠️ পজিশন সফলভাবে ওপেন হয়েছে, তবে কিছু TP/SL অর্ডার প্লেস করা যায়নি!`,'below');
+      }
+
     }else if(ex==='bybit'){
       updateStatus("🔴 ১. বাইবিট ফিউচার লিভারেজ সেট করা হচ্ছে...");
       try{
@@ -2217,7 +2345,7 @@ async function executeApiHedge(){
           sellLeverage:lev.toString()
         });
       }catch(e){}
-      updateStatus("⚡ ২. বাইবিট ফিউচার লং ও শর্ট অর্ডার পাঠানো হচ্ছে...");
+      updateStatus("⚡ ২. বাইবিট ফিউচার লং ও শর্ট পজিশন ওপেন করা হচ্ছে...");
       const [longRes,shortRes]=await Promise.all([
         callBybitApi('/v5/order/create',{
           category:'linear',
@@ -2242,7 +2370,86 @@ async function executeApiHedge(){
       if(shortRes.retCode!==0){
         throw new Error(`Short Order Error: ${shortRes.retMsg || JSON.stringify(shortRes)}`);
       }
-      showToast(`✅ Bybit: Futures Long & Futures Short সফলভাবে সম্পন্ন হয়েছে!`,'above');
+      
+      updateStatus("🎯 ৩. বাইবিট স্বয়ংক্রিয় TP/SL অর্ডার সেট করা হচ্ছে...");
+      try {
+        await Promise.all([
+          // Long SL (Conditional Market Order)
+          callBybitApi('/v5/order/create',{
+            category:'linear',
+            symbol:symbol,
+            side:'Sell',
+            positionIdx:1,
+            orderType:'Market',
+            qty:formatQty(currentSymbol,longQty),
+            triggerPrice:formatPrice(currentSymbol,lsl),
+            reduceOnly:true
+          }),
+          // Long TP1 (Limit Order, 50%)
+          callBybitApi('/v5/order/create',{
+            category:'linear',
+            symbol:symbol,
+            side:'Sell',
+            positionIdx:1,
+            orderType:'Limit',
+            qty:formatQty(currentSymbol,longQty/2),
+            price:formatPrice(currentSymbol,ltp1),
+            reduceOnly:true,
+            timeInForce:'GTC'
+          }),
+          // Long TP2 (Limit Order, 50%)
+          callBybitApi('/v5/order/create',{
+            category:'linear',
+            symbol:symbol,
+            side:'Sell',
+            positionIdx:1,
+            orderType:'Limit',
+            qty:formatQty(currentSymbol,longQty/2),
+            price:formatPrice(currentSymbol,ltp2),
+            reduceOnly:true,
+            timeInForce:'GTC'
+          }),
+          // Short SL (Conditional Market Order)
+          callBybitApi('/v5/order/create',{
+            category:'linear',
+            symbol:symbol,
+            side:'Buy',
+            positionIdx:2,
+            orderType:'Market',
+            qty:formatQty(currentSymbol,shortQty),
+            triggerPrice:formatPrice(currentSymbol,ssl),
+            reduceOnly:true
+          }),
+          // Short TP1 (Limit Order, 50%)
+          callBybitApi('/v5/order/create',{
+            category:'linear',
+            symbol:symbol,
+            side:'Buy',
+            positionIdx:2,
+            orderType:'Limit',
+            qty:formatQty(currentSymbol,shortQty/2),
+            price:formatPrice(currentSymbol,stp1),
+            reduceOnly:true,
+            timeInForce:'GTC'
+          }),
+          // Short TP2 (Limit Order, 50%)
+          callBybitApi('/v5/order/create',{
+            category:'linear',
+            symbol:symbol,
+            side:'Buy',
+            positionIdx:2,
+            orderType:'Limit',
+            qty:formatQty(currentSymbol,shortQty/2),
+            price:formatPrice(currentSymbol,stp2),
+            reduceOnly:true,
+            timeInForce:'GTC'
+          })
+        ]);
+        showToast(`✅ Bybit: Futures Long, Short এবং সকল TP/SL সফলভাবে প্লেস হয়েছে!`,'above');
+      } catch(tpSlErr) {
+        console.error("TP/SL Placement error:", tpSlErr);
+        showToast(`⚠️ পজিশন সফলভাবে ওপেন হয়েছে, তবে কিছু TP/SL অর্ডার প্লেস করা যায়নি!`,'below');
+      }
     }
     closeApiConfirmModal();
     startTrade();
