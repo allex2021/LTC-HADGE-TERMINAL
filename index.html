@@ -441,8 +441,15 @@ body>*{position:relative;z-index:1}
 
 <!-- ─── HEADER ─── -->
 <div class="hdr">
-  <div>
-    <div class="logo"><em>LTC</em>/HEDGE <span class="v7">TERMINAL · V7</span></div>
+  <div style="display:flex;align-items:center;gap:15px;flex-wrap:wrap">
+    <div class="logo"><em id="logoSymbol">LTC</em>/HEDGE <span class="v7">TERMINAL · V7</span></div>
+    <select id="coinSelect" onchange="changeSymbol(this.value)" style="background:var(--bg3);border:.5px solid var(--bd2);color:var(--g);border-radius:8px;padding:4px 8px;font-family:var(--sans);font-size:11px;font-weight:700;cursor:pointer;outline:none;transition:all 0.15s">
+      <option value="LTC">LTC (Litecoin)</option>
+      <option value="BTC">BTC (Bitcoin)</option>
+      <option value="ETH">ETH (Ethereum)</option>
+      <option value="SOL">SOL (Solana)</option>
+      <option value="XRP">XRP (Ripple)</option>
+    </select>
     <div class="hdr-dev">DEV: <b>ALLEX</b> · CYBER2 · TRADE LEVEL</div>
   </div>
   <div class="hdr-right">
@@ -479,7 +486,7 @@ body>*{position:relative;z-index:1}
 <!-- ─── TRADINGVIEW CHART ─── -->
 <div class="chart-wrap">
   <div class="chart-head">
-    <span class="chart-title">LTC/USDT · CANDLESTICK</span>
+    <span class="chart-title" id="chartTitle">LTC/USDT · CANDLESTICK</span>
     <div class="chart-tf">
       <button class="tf-btn" onclick="loadChart('15m')">15m</button>
       <button class="tf-btn on" onclick="loadChart('1h')" id="tf-1h">1h</button>
@@ -940,6 +947,7 @@ body>*{position:relative;z-index:1}
 // ═══════════════════════════════════════════════════════
 
 // ─── STATE ───
+let currentSymbol='LTC';
 let price=0,prevPrice=0;
 let rsiVal=null,atrVal=0,fundingRate=0,frHistory=[];
 let SR={R:[],S:[]};
@@ -1053,10 +1061,30 @@ function updateChartPriceLines(px,sr){
 // ═══════════════════════════════════════════════════════
 // WEBSOCKET LIVE PRICE (Binance)
 // ═══════════════════════════════════════════════════════
+function changeSymbol(sym){
+  currentSymbol = sym;
+  const logo = document.getElementById('logoSymbol'); if(logo) logo.textContent = sym;
+  const titleEl = document.getElementById('chartTitle'); if(titleEl) titleEl.textContent = `${sym}/USDT · CANDLESTICK`;
+  document.title = `${sym}/HEDGE TERMINAL v7 · ALLEX`;
+  
+  // Reconnect WebSocket & reset charts
+  initWS();
+  clearChartPriceLines();
+  loadChart(currentTF);
+  
+  // Reload pricing
+  loadAll();
+  
+  // Clear alerts for previous symbol
+  priceAlerts = [];
+  renderAlerts();
+  
+  showToast(`🔄 Switched to ${sym}/USDT`, 'above');
+}
 function initWS(){
   if(wsConn){try{wsConn.close();}catch(e){}}
   try{
-    wsConn=new WebSocket('wss://stream.binance.com:9443/ws/ltcusdt@ticker');
+    wsConn=new WebSocket(`wss://stream.binance.com:9443/ws/${currentSymbol.toLowerCase()}usdt@ticker`);
     wsConn.onopen=()=>{
       document.getElementById('wsStatus').textContent='WS: LIVE';
       document.getElementById('wsStatus').className='ws-status ws-connected';
@@ -1130,36 +1158,36 @@ function updatePrice(px,chgPct,high,low){
 const safe=async fn=>{try{return await fn();}catch(e){return null;}};
 
 async function getBN(){
-  const r=await fetch('https://api.binance.com/api/v3/ticker/24hr?symbol=LTCUSDT');
+  const r=await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${currentSymbol}USDT`);
   const d=await r.json();
   return{price:parseFloat(d.lastPrice),chg:parseFloat(d.priceChangePercent),high:parseFloat(d.highPrice),low:parseFloat(d.lowPrice),vol:parseFloat(d.volume)};
 }
 async function getBY(){
-  const r=await fetch('https://api.bybit.com/v5/market/tickers?category=spot&symbol=LTCUSDT');
+  const r=await fetch(`https://api.bybit.com/v5/market/tickers?category=spot&symbol=${currentSymbol}USDT`);
   const d=await r.json();
   const t=d.result?.list?.[0];
   if(!t)return null;
   return{price:parseFloat(t.lastPrice),chg:parseFloat(t.price24hPcnt)*100,high:parseFloat(t.highPrice24h),low:parseFloat(t.lowPrice24h)};
 }
 async function getMX(){
-  const r=await fetch('https://api.mexc.com/api/v3/ticker/24hr?symbol=LTCUSDT');
+  const r=await fetch(`https://api.mexc.com/api/v3/ticker/24hr?symbol=${currentSymbol}USDT`);
   const d=await r.json();
   return{price:parseFloat(d.lastPrice),chg:parseFloat(d.priceChangePercent),high:parseFloat(d.highPrice),low:parseFloat(d.lowPrice)};
 }
 async function getBG(){
-  const r=await fetch('https://api.bitget.com/api/v2/spot/market/tickers?symbol=LTCUSDT');
+  const r=await fetch(`https://api.bitget.com/api/v2/spot/market/tickers?symbol=${currentSymbol}USDT`);
   const d=await r.json();
   const t=d.data?.[0];
   if(!t)return null;
   return{price:parseFloat(t.lastPr),chg:parseFloat(t.change24h)*100,high:parseFloat(t.high24h),low:parseFloat(t.low24h)};
 }
 async function getKlines(tf='4h'){
-  const r=await fetch(`https://api.binance.com/api/v3/klines?symbol=LTCUSDT&interval=${tf}&limit=100`);
+  const r=await fetch(`https://api.binance.com/api/v3/klines?symbol=${currentSymbol}USDT&interval=${tf}&limit=100`);
   return await r.json();
 }
 async function getFunding(){
   try{
-    const r=await fetch('https://fapi.binance.com/fapi/v1/fundingRate?symbol=LTCUSDT&limit=1');
+    const r=await fetch(`https://fapi.binance.com/fapi/v1/fundingRate?symbol=${currentSymbol}USDT&limit=1`);
     const d=await r.json();
     if(d&&d[0]){
       fundingRate=parseFloat(d[0].fundingRate)*100;
@@ -1170,14 +1198,14 @@ async function getFunding(){
 }
 async function getFundingHistory(){
   try{
-    const r=await fetch('https://fapi.binance.com/fapi/v1/fundingRate?symbol=LTCUSDT&limit=24');
+    const r=await fetch(`https://fapi.binance.com/fapi/v1/fundingRate?symbol=${currentSymbol}USDT&limit=24`);
     const d=await r.json();
     if(d&&d.length)frHistory=d.map(x=>parseFloat(x.fundingRate)*100);
   }catch(e){}
 }
 async function getOrderBook(){
   try{
-    const r=await fetch('https://api.binance.com/api/v3/depth?symbol=LTCUSDT&limit=20');
+    const r=await fetch(`https://api.binance.com/api/v3/depth?symbol=${currentSymbol}USDT&limit=20`);
     const d=await r.json();
     const bidVol=d.bids.reduce((a,b)=>a+parseFloat(b[1]),0);
     const askVol=d.asks.reduce((a,b)=>a+parseFloat(b[1]),0);
@@ -1189,8 +1217,8 @@ async function getOrderBook(){
 
     document.getElementById('obBid').style.width=bidPct+'%';
     document.getElementById('obAsk').style.width=askPct+'%';
-    document.getElementById('ob-bid-vol').textContent=bidVol.toFixed(0)+' LTC';
-    document.getElementById('ob-ask-vol').textContent=askVol.toFixed(0)+' LTC';
+    document.getElementById('ob-bid-vol').textContent=bidVol.toFixed(0)+' '+currentSymbol;
+    document.getElementById('ob-ask-vol').textContent=askVol.toFixed(0)+' '+currentSymbol;
     document.getElementById('ob-spread').textContent='$'+spread.toFixed(3);
     const imEl=document.getElementById('ob-imbal');
     if(imEl){
@@ -1201,7 +1229,7 @@ async function getOrderBook(){
 }
 async function getLSRatio(){
   try{
-    const r=await fetch('https://fapi.binance.com/futures/data/globalLongShortAccountRatio?symbol=LTCUSDT&period=5m&limit=1');
+    const r=await fetch(`https://fapi.binance.com/futures/data/globalLongShortAccountRatio?symbol=${currentSymbol}USDT&period=5m&limit=1`);
     const d=await r.json();
     if(d&&d[0]){
       lsRatio=parseFloat(d[0].longShortRatio);
@@ -1216,7 +1244,7 @@ async function getLSRatio(){
 }
 async function getOIDelta(){
   try{
-    const r=await fetch('https://fapi.binance.com/fapi/v1/openInterest?symbol=LTCUSDT');
+    const r=await fetch(`https://fapi.binance.com/fapi/v1/openInterest?symbol=${currentSymbol}USDT`);
     const d=await r.json();
     if(d&&d.openInterest){
       const oi=parseFloat(d.openInterest);
@@ -1225,7 +1253,7 @@ async function getOIDelta(){
       const el=document.getElementById('oi-delta');
       const sub=document.getElementById('oi-sub');
       if(el){el.textContent=(delta>=0?'+':'')+delta.toFixed(3)+'%';el.style.color=delta>0?'var(--g)':delta<0?'var(--r)':'var(--b)';}
-      if(sub)sub.textContent='OI: '+oi.toFixed(0)+' LTC';
+      if(sub)sub.textContent='OI: '+oi.toFixed(0)+' '+currentSymbol;
     }
   }catch(e){}
 }
@@ -1481,10 +1509,10 @@ function renderPlan(px,sr){
   const lsl=px*(1-0.04),ssl=px*(1+0.035);
   const llq=px*(1-1/lev+0.005),slq=px*(1+1/lev-0.005);
   const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
-  set('ll-e','$'+px.toFixed(2));set('ll-q',lq.toFixed(4)+' LTC');
+  set('ll-e','$'+px.toFixed(2));set('ll-q',lq.toFixed(4)+' '+currentSymbol);
   set('ll-t1','$'+ltp1.toFixed(2));set('ll-t2','$'+ltp2.toFixed(2));
   set('ll-sl','$'+lsl.toFixed(2));set('ll-lq','$'+llq.toFixed(2));
-  set('ss-e','$'+px.toFixed(2));set('ss-q',sq.toFixed(4)+' LTC');
+  set('ss-e','$'+px.toFixed(2));set('ss-q',sq.toFixed(4)+' '+currentSymbol);
   set('ss-t1','$'+stp1.toFixed(2));set('ss-t2','$'+stp2.toFixed(2));
   set('ss-sl','$'+ssl.toFixed(2));set('ss-lq','$'+slq.toFixed(2));
   set('pl1','+$'+((ltp1-px)*lq).toFixed(2));set('pl2','+$'+((ltp2-px)*lq).toFixed(2));
@@ -1595,10 +1623,10 @@ async function runAIAnalysis(manual=false){
   }
   if(panel)panel.classList.add('loading');
   content.innerHTML='<div class="ai-loading"><span class="spin"></span><br>Claude AI বিশ্লেষণ করছে...</div>';
-  const prompt=`You are an expert crypto hedge trader analyzing LTC/USDT for a Bengali-speaking trader. Respond ONLY in simple Bengali (বাংলা) mixed with English numbers/terms. Be concise and actionable.
+  const prompt=`You are an expert crypto hedge trader analyzing ${currentSymbol}/USDT for a Bengali-speaking trader. Respond ONLY in simple Bengali (বাংলা) mixed with English numbers/terms. Be concise and actionable.
 
 Current Market Data:
-- LTC/USDT Price: $${px.toFixed(2)}
+- ${currentSymbol}/USDT Price: $${px.toFixed(2)}
 - RSI (14, Wilder): ${rsi.toFixed(1)}
 - ATR (14, 4h): $${atrVal.toFixed(2)} (${(atrVal/px*100).toFixed(2)}%)
 - Funding Rate: ${fr.toFixed(4)}%
@@ -1670,7 +1698,7 @@ function renderAIFallback(px,rsi,fr,r1,s1,dr,ds){
       <span style="background:${bc}22;border:.5px solid ${bc};color:${bc};padding:4px 12px;border-radius:20px;font-family:var(--mono);font-size:11px">${bias}</span>
       <span style="font-size:9px;color:var(--t3);font-family:var(--mono)">[Fallback mode]</span>
     </div>
-    <div class="ai-body" style="margin-bottom:10px">LTC/USDT বর্তমানে $${px.toFixed(2)}। RSI ${rsi.toFixed(1)} — ${rsi<30?'ওভারসোল্ড':rsi>70?'ওভারবট':'নিউট্রাল'}। ATR: $${atrVal.toFixed(2)}। S: $${s1.toFixed(2)} (−${ds}%), R: $${r1.toFixed(2)} (+${dr}%)।</div>
+    <div class="ai-body" style="margin-bottom:10px">${currentSymbol}/USDT বর্তমানে $${px.toFixed(2)}। RSI ${rsi.toFixed(1)} — ${rsi<30?'ওভারসোল্ড':rsi>70?'ওভারবট':'নিউট্রাল'}। ATR: $${atrVal.toFixed(2)}। S: $${s1.toFixed(2)} (−${ds}%), R: $${r1.toFixed(2)} (+${dr}%)।</div>
     <div class="ai-scores">
       <div class="ai-sc"><div class="ai-sc-lbl">📈 লং</div><div style="font-size:10px;color:var(--g);margin-top:4px">S $${s1.toFixed(2)} থেকে +${ds}% দূরে। ${rsi<50?'RSI সাপোর্ট করছে।':'সতর্ক।'}</div></div>
       <div class="ai-sc"><div class="ai-sc-lbl">📉 শর্ট</div><div style="font-size:10px;color:var(--r);margin-top:4px">R $${r1.toFixed(2)} থেকে −${dr}% দূরে। ${rsi>50?'RSI সাপোর্ট করছে।':'সতর্ক।'}</div></div>
@@ -1923,7 +1951,7 @@ function doDCAv5(){
     if(header){header.style.background=isLong?'var(--gd2)':'var(--rd2)';header.querySelector('span').style.color=isLong?'var(--g)':'var(--r)';}
     document.getElementById('dcaResultRows').innerHTML=`
       <div class="dca-row"><span class="dca-row-k">নতুন Avg Entry</span><span class="dca-row-v">$${avgEntry.toFixed(2)}</span></div>
-      <div class="dca-row"><span class="dca-row-k">নতুন Quantity</span><span class="dca-row-v">${newQty.toFixed(4)} LTC</span></div>
+      <div class="dca-row"><span class="dca-row-k">নতুন Quantity</span><span class="dca-row-v">${newQty.toFixed(4)} ${currentSymbol}</span></div>
       <div class="dca-row"><span class="dca-row-k">নতুন Exposure</span><span class="dca-row-v">$${newExposure.toFixed(0)}</span></div>
       <div class="dca-row"><span class="dca-row-k">নতুন LIQ Price</span><span class="dca-row-v" style="color:var(--r)">$${newLiq.toFixed(2)}</span></div>
       <div class="dca-row"><span class="dca-row-k">Unrealized P&L</span><span class="dca-row-v" style="color:${unrealPnl>=0?'var(--g)':'var(--r)'}">${unrealPnl>=0?'+':''}$${unrealPnl.toFixed(2)} (${unrealPct.toFixed(1)}%)</span></div>`;
@@ -2005,7 +2033,7 @@ async function loadNews(){
   const list=document.getElementById('newsList');if(!list)return;
   list.innerHTML='<div style="text-align:center;padding:30px;color:var(--t3)"><span class="spin"></span><br><br>নিউজ লোড...</div>';
   try{
-    let url='https://min-api.cryptocompare.com/data/v2/news/?lang=EN&categories=LTC,cryptocurrency&excludeCategories=Sponsored';
+    let url=`https://min-api.cryptocompare.com/data/v2/news/?lang=EN&categories=${currentSymbol},cryptocurrency&excludeCategories=Sponsored`;
     if(settings.cryptocompareKey)url+=`&api_key=${settings.cryptocompareKey}`;
     const r=await fetch(url);
     const d=await r.json();
