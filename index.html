@@ -1900,33 +1900,6 @@ function renderAlerts(){
       <button class="alert-del" onclick="removeAlert(${a.id})">✕</button>
     </div>`).join('');
 }
-function playBeepSound(type='single'){
-  if(!settings.audioAlerts)return;
-  try{
-    const AudioContext=window.AudioContext||window.webkitAudioContext;
-    if(!AudioContext)return;
-    const ctx=new AudioContext();
-    const playTone=(freq,duration,startTime)=>{
-      const osc=ctx.createOscillator();
-      const gain=ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.type='sine';
-      osc.frequency.setValueAtTime(freq,startTime);
-      gain.gain.setValueAtTime(0.08,startTime);
-      gain.gain.exponentialRampToValueAtTime(0.001,startTime+duration);
-      osc.start(startTime);
-      osc.stop(startTime+duration);
-    };
-    const now=ctx.currentTime;
-    if(type==='double'){
-      playTone(1200,0.12,now);
-      playTone(1200,0.12,now+0.18);
-    }else{
-      playTone(880,0.25,now);
-    }
-  }catch(e){}
-}
 function checkAlerts(px){
   let fired=false;
   priceAlerts.forEach(a=>{
@@ -2000,42 +1973,40 @@ function showToast(msg,type='above'){
   toast.className='toast '+(type==='below'?'below':'');
   toast.textContent=msg;
   container.appendChild(toast);
-  // Log
   const log=document.getElementById('alertLog');
   if(log){const t=new Date();log.innerHTML=`<div style="color:var(--t3);padding:3px 0">[${pad(t.getHours())}:${pad(t.getMinutes())}] ${msg}</div>`+log.innerHTML;}
-  
   if(msg.includes('🔔')||msg.includes('🐋')){
     playAudioAlert(msg.replace('🔔','').replace('🐋','').replace('ALERT:','').trim());
     sendTelegramAlert(msg);
   }
-  
   setTimeout(()=>{toast.style.opacity='0';toast.style.transition='opacity .4s';setTimeout(()=>toast.remove(),400);},4000);
 }
-
-// ═══════════════════════════════════════════════════════
-// TRADE JOURNAL + CSV EXPORT
-// ═══════════════════════════════════════════════════════
-function showJAddModal(){
-  const d=new Date();
-  const di=document.getElementById('jDate');if(di)di.value=pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+d.getFullYear();
-  const ei=document.getElementById('jEntry');if(ei&&price)ei.value=price.toFixed(2);
-  document.getElementById('jModal').style.display='flex';
-}
-function closeJModal(){document.getElementById('jModal').style.display='none';}
-function saveJEntry(){
-  const date=document.getElementById('jDate')?.value||'—';
-  const side=document.getElementById('jSide')?.value||'HEDGE';
-  const entry=parseFloat(document.getElementById('jEntry')?.value)||0;
-  const exit=parseFloat(document.getElementById('jExit')?.value)||0;
-  const margin=parseFloat(document.getElementById('jMargin')?.value)||90;
-  const lev=parseFloat(document.getElementById('jLev')?.value)||20;
-  if(!entry||!exit){closeJModal();return;}
-  const pnl=side==='SHORT'?((entry-exit)/entry*100*lev):((exit-entry)/entry*100*lev);
-  const dur=0;
-  journal.unshift({id:Date.now(),date,entry:entry.toFixed(2),exit:exit.toFixed(2),pnl:pnl.toFixed(2),dur,side,margin,lev});
-  if(journal.length>100)journal.pop();
-  try{localStorage.setItem('ltc_j_v7',JSON.stringify(journal));}catch(e){}
-  closeJModal();renderJournal();
+function playBeepSound(type='single'){
+  if(!settings.audioAlerts)return;
+  try{
+    const AudioContext=window.AudioContext||window.webkitAudioContext;
+    if(!AudioContext)return;
+    const ctx=new AudioContext();
+    const playTone=(freq,duration,startTime)=>{
+      const osc=ctx.createOscillator();
+      const gain=ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type='sine';
+      osc.frequency.setValueAtTime(freq,startTime);
+      gain.gain.setValueAtTime(0.08,startTime);
+      gain.gain.exponentialRampToValueAtTime(0.001,startTime+duration);
+      osc.start(startTime);
+      osc.stop(startTime+duration);
+    };
+    const now=ctx.currentTime;
+    if(type==='double'){
+      playTone(1200,0.12,now);
+      playTone(1200,0.12,now+0.18);
+    }else{
+      playTone(880,0.25,now);
+    }
+  }catch(e){}
 }
 function toggleApiExecUi(){
   const chk=document.getElementById('api-exec-check');
@@ -2117,24 +2088,7 @@ function formatQty(coin,qty){
   if(coin==='XRP')return qty.toFixed(0);
   return qty.toFixed(1);
 }
-function handleStartTradeClick(){
-  const apiCheck=document.getElementById('api-exec-check')?.checked;
-  if(!apiCheck){
-    startTrade();
-    return;
-  }
-  const ex=document.getElementById('api-exec-exchange')?.value;
-  if(ex==='binance'&&(!settings.binanceKey||!settings.binanceSecret)){
-    showToast('❌ সেটিংসে Binance API Key ও Secret কনফিগার করুন!','below');
-    return;
-  }
-  if(ex==='bybit'&&(!settings.bybitKey||!settings.bybitSecret)){
-    showToast('❌ সেটিংসে Bybit API Key ও Secret কনফিগার করুন!','below');
-    return;
-  }
-  showApiConfirmModal();
-}
-function showApiConfirmModal(){
+ function showApiConfirmModal(){
   const {lev,lm,sm}=getPlanConfig();
   const px=price||0;
   if(!px){
@@ -2143,17 +2097,17 @@ function showApiConfirmModal(){
   }
   const ex=document.getElementById('api-exec-exchange')?.value;
   const exName=ex==='binance'?'Binance Futures':'Bybit Futures';
-  const spotUsdt=(lm*lev).toFixed(2);
-  const spotQty=((lm*lev)/px).toFixed(4);
-  const futUsdt=(sm*lev).toFixed(2);
-  const futQty=((sm*lev)/px).toFixed(4);
+  const longUsdt=(lm*lev).toFixed(2);
+  const longQty=((lm*lev)/px).toFixed(4);
+  const shortUsdt=(sm*lev).toFixed(2);
+  const shortQty=((sm*lev)/px).toFixed(4);
   const overlay=document.createElement('div');
   overlay.id='api-confirm-modal';
   overlay.style='position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(5px);';
   overlay.innerHTML=`
     <div style="background:var(--bg2);border:.5px solid var(--bd2);border-radius:12px;width:100%;max-width:400px;overflow:hidden;box-shadow:0 0 30px rgba(0,0,0,0.5)">
       <div style="background:linear-gradient(135deg, var(--r), var(--b));padding:14px;color:#fff;font-weight:700;font-size:14px;text-align:center;letter-spacing:1px">
-        🤖 API ট্রেড এক্সিকিউশন নিশ্চিতকরণ
+        🤖 API হেজ ট্রেড নিশ্চিতকরণ
       </div>
       <div style="padding:16px;display:flex;flex-direction:column;gap:12px;color:var(--t)">
         <div style="font-size:11px;color:var(--t2);line-height:1.5">
@@ -2170,16 +2124,16 @@ function showApiConfirmModal(){
           </div>
           <div style="border-top:.5px solid var(--bd);margin:4px 0"></div>
           <div style="display:flex;justify-content:space-between;align-items:center">
-            <span style="font-size:11px;color:var(--g)">🟢 স্পট বাই (Spot Long):</span>
-            <span style="font-family:var(--mono);font-size:12px;font-weight:700">$${spotUsdt} (${spotQty} ${currentSymbol})</span>
+            <span style="font-size:11px;color:var(--g)">🟢 ফিউচার লং (Futures Long):</span>
+            <span style="font-family:var(--mono);font-size:12px;font-weight:700">$${longUsdt} (${longQty} ${currentSymbol})</span>
           </div>
           <div style="display:flex;justify-content:space-between;align-items:center">
             <span style="font-size:11px;color:var(--r)">🔴 ফিউচার শর্ট (Futures Short):</span>
-            <span style="font-family:var(--mono);font-size:12px;font-weight:700">$${futUsdt} (${futQty} ${currentSymbol})</span>
+            <span style="font-family:var(--mono);font-size:12px;font-weight:700">$${shortUsdt} (${shortQty} ${currentSymbol})</span>
           </div>
         </div>
         <div style="font-size:10px;color:var(--r);background:rgba(255,45,85,0.05);border:.5px solid var(--r);border-radius:6px;padding:8px;line-height:1.4">
-          ⚠️ <b>সতর্কতা:</b> এটি মার্কেট অর্ডারের মাধ্যমে রিয়েল পজিশন ওপেন করবে। এক্সচেঞ্জে পর্যাপ্ত মার্জিন থাকা আবশ্যক।
+          ⚠️ <b>গুরুত্বপূর্ণ:</b> এই ডাবল হেজ ট্রেডটি সচল রাখতে আপনার ফিউচার অ্যাকাউন্টটি অবশ্যই <b>Hedge Mode (দ্বিমুখী পজিশন মোড)</b> এ সেট করা থাকতে হবে।
         </div>
       </div>
       <div style="display:flex;gap:1px;background:var(--bd);border-top:.5px solid var(--bd2)">
@@ -2218,39 +2172,41 @@ async function executeApiHedge(){
   const px=price||0;
   const symbol=currentSymbol+'USDT';
   const ex=document.getElementById('api-exec-exchange')?.value;
+  const longQty=((lm*lev)/px);
+  const shortQty=((sm*lev)/px);
   try{
     if(ex==='binance'){
-      updateStatus("🟢 ১. বাইনান্স স্পট বাই অর্ডার পাঠানো হচ্ছে...");
-      const spotUsdt=(lm*lev).toFixed(2);
-      const spotRes=await callBinanceApi('https://api.binance.com','/api/v3/order',{
-        symbol:symbol,
-        side:'BUY',
-        type:'MARKET',
-        quoteOrderQty:spotUsdt
-      });
-      if(spotRes.msg||spotRes.code){
-        throw new Error(`Spot Error: ${spotRes.msg || JSON.stringify(spotRes)}`);
-      }
-      const filledQty=parseFloat(spotRes.executedQty)||((lm*lev)/px);
-      updateStatus(`🟢 স্পট ফিল্ড সাইজ: ${filledQty.toFixed(4)} ${currentSymbol}`);
-      updateStatus("🔴 ২. ফিউচার লিভারেজ সেট করা হচ্ছে...");
+      updateStatus("🔴 ১. বাইনান্স ফিউচার লিভারেজ সেট করা হচ্ছে...");
       try{
         await callBinanceApi('https://fapi.binance.com','/fapi/v1/leverage',{
           symbol:symbol,
           leverage:lev.toString()
         });
       }catch(e){}
-      updateStatus("🔴 ৩. ফিউচার শর্ট অর্ডার পাঠানো হচ্ছে...");
-      const futuresRes=await callBinanceApi('https://fapi.binance.com','/fapi/v1/order',{
-        symbol:symbol,
-        side:'SELL',
-        type:'MARKET',
-        quantity:formatQty(currentSymbol,filledQty)
-      });
-      if(futuresRes.msg||futuresRes.code){
-        throw new Error(`Futures Error: ${futuresRes.msg || JSON.stringify(futuresRes)}`);
+      updateStatus("⚡ ২. ফিউচার লং ও শর্ট অর্ডার পাঠানো হচ্ছে...");
+      const [longRes,shortRes]=await Promise.all([
+        callBinanceApi('https://fapi.binance.com','/fapi/v1/order',{
+          symbol:symbol,
+          side:'BUY',
+          positionSide:'LONG',
+          type:'MARKET',
+          quantity:formatQty(currentSymbol,longQty)
+        }),
+        callBinanceApi('https://fapi.binance.com','/fapi/v1/order',{
+          symbol:symbol,
+          side:'SELL',
+          positionSide:'SHORT',
+          type:'MARKET',
+          quantity:formatQty(currentSymbol,shortQty)
+        })
+      ]);
+      if(longRes.msg||longRes.code){
+        throw new Error(`Long Order Error: ${longRes.msg || JSON.stringify(longRes)}`);
       }
-      showToast(`✅ Binance: Spot Buy & Futures Short সফলভাবে সম্পন্ন হয়েছে!`,'above');
+      if(shortRes.msg||shortRes.code){
+        throw new Error(`Short Order Error: ${shortRes.msg || JSON.stringify(shortRes)}`);
+      }
+      showToast(`✅ Binance: Futures Long & Futures Short সফলভাবে সম্পন্ন হয়েছে!`,'above');
     }else if(ex==='bybit'){
       updateStatus("🔴 ১. বাইবিট ফিউচার লিভারেজ সেট করা হচ্ছে...");
       try{
@@ -2261,35 +2217,32 @@ async function executeApiHedge(){
           sellLeverage:lev.toString()
         });
       }catch(e){}
-      updateStatus("🟢 ২. বাইবিট স্পট বাই অর্ডার পাঠানো হচ্ছে...");
-      const spotUsdt=(lm*lev).toFixed(2);
-      const spotRes=await callBybitApi('/v5/order/create',{
-        category:'spot',
-        symbol:symbol,
-        side:'Buy',
-        orderType:'Market',
-        qty:spotUsdt
-      });
-      if(spotRes.retCode!==0){
-        throw new Error(`Spot Error: ${spotRes.retMsg || JSON.stringify(spotRes)}`);
+      updateStatus("⚡ ২. বাইবিট ফিউচার লং ও শর্ট অর্ডার পাঠানো হচ্ছে...");
+      const [longRes,shortRes]=await Promise.all([
+        callBybitApi('/v5/order/create',{
+          category:'linear',
+          symbol:symbol,
+          side:'Buy',
+          positionIdx:1,
+          orderType:'Market',
+          qty:formatQty(currentSymbol,longQty)
+        }),
+        callBybitApi('/v5/order/create',{
+          category:'linear',
+          symbol:symbol,
+          side:'Sell',
+          positionIdx:2,
+          orderType:'Market',
+          qty:formatQty(currentSymbol,shortQty)
+        })
+      ]);
+      if(longRes.retCode!==0){
+        throw new Error(`Long Order Error: ${longRes.retMsg || JSON.stringify(longRes)}`);
       }
-      let filledQty=((lm*lev)/px);
-      if(spotRes.result&&spotRes.result.qty){
-        filledQty=parseFloat(spotRes.result.qty);
+      if(shortRes.retCode!==0){
+        throw new Error(`Short Order Error: ${shortRes.retMsg || JSON.stringify(shortRes)}`);
       }
-      updateStatus(`🟢 স্পট ফিল্ড সাইজ: ${filledQty.toFixed(4)} ${currentSymbol}`);
-      updateStatus("🔴 ৩. বাইবিট ফিউচার শর্ট অর্ডার পাঠানো হচ্ছে...");
-      const futuresRes=await callBybitApi('/v5/order/create',{
-        category:'linear',
-        symbol:symbol,
-        side:'Sell',
-        orderType:'Market',
-        qty:formatQty(currentSymbol,filledQty)
-      });
-      if(futuresRes.retCode!==0){
-        throw new Error(`Futures Error: ${futuresRes.retMsg || JSON.stringify(futuresRes)}`);
-      }
-      showToast(`✅ Bybit: Spot Buy & Futures Short সফলভাবে সম্পন্ন হয়েছে!`,'above');
+      showToast(`✅ Bybit: Futures Long & Futures Short সফলভাবে সম্পন্ন হয়েছে!`,'above');
     }
     closeApiConfirmModal();
     startTrade();
@@ -2307,7 +2260,7 @@ async function executeApiHedge(){
           <div style="font-size:11px;color:var(--t2);line-height:1.4">
             অনুগ্রহ করে চেক করুন:
             <br>১. এপিআই কি ও সিক্রেট সঠিক আছে কিনা।
-            <br>২. একاونটে পর্যাপ্ত ব্যালেন্স আছে কিনা।
+            <br>২. একাউন্টে পর্যাপ্ত ব্যালেন্স আছে কিনা।
             <br>৩. লোকাল CORS সার্ভার সচল আছে কিনা।
           </div>
         </div>
@@ -2318,6 +2271,24 @@ async function executeApiHedge(){
     `;
   }
 }
+function handleStartTradeClick(){
+  const apiCheck=document.getElementById('api-exec-check')?.checked;
+  if(!apiCheck){
+    startTrade();
+    return;
+  }
+  const ex=document.getElementById('api-exec-exchange')?.value;
+  if(ex==='binance'&&(!settings.binanceKey||!settings.binanceSecret)){
+    showToast('❌ সেটিংসে Binance API Key ও Secret কনফিগার করুন!','below');
+    return;
+  }
+  if(ex==='bybit'&&(!settings.bybitKey||!settings.bybitSecret)){
+    showToast('❌ সেটিংসে Bybit API Key ও Secret কনফিগার করুন!','below');
+    return;
+  }
+  showApiConfirmModal();
+}
+
 function startTrade(){
   tradeT=Date.now();tradePx=price;longEntry=price;shortEntry=price;
   document.getElementById('panel-open').style.display='none';
