@@ -1038,12 +1038,17 @@ body>*{position:relative;z-index:1}
     
     <div class="sep" style="margin:10px 0"></div>
     <div class="sett-field" style="margin-bottom:12px">
-      <label class="sett-label">🔐 টার্মিনাল পাসকোড লক (Terminal PIN Lock)</label>
-      <div style="display:flex;gap:6px">
-        <input class="sett-inp" id="settPasscode" type="password" maxlength="6" placeholder="Set 4-6 digit numeric PIN..." style="flex:1">
-        <button type="button" class="btn btnsm" id="btn-passcode-action" style="background:var(--bg3);color:var(--t2);border:.5px solid var(--bd2);padding:8px 12px;font-size:10px;border-radius:8px;cursor:pointer;font-weight:700" onclick="handlePasscodeSetup()">সেট পিন</button>
+      <label class="sett-label">👤 ইউজার অ্যাকাউন্ট (User Account): <span id="sett-username-display" style="color:var(--g);font-weight:700"></span></label>
+      <div style="display:flex;flex-direction:column;gap:6px;background:var(--bg3);border:.5px solid var(--bd2);padding:10px;border-radius:8px">
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <span style="font-size:9px;color:var(--t3)">পাসওয়ার্ড পরিবর্তন করুন</span>
+          <div style="display:flex;gap:6px">
+            <input class="sett-inp" id="settNewPassword" type="password" placeholder="New Password (min 6 chars)..." style="flex:1">
+            <button type="button" class="btn btnsm" style="background:var(--bg3);color:var(--t2);border:.5px solid var(--bd2);padding:8px 12px;font-size:10px;border-radius:8px;cursor:pointer;font-weight:700" onclick="handlePasswordChange()">আপডেট</button>
+          </div>
+        </div>
+        <button type="button" class="btn btnsm btnr" style="width:100%;margin-top:6px;padding:6px;font-size:10px;cursor:pointer" onclick="handleUserLogout()">🔒 লগআউট (Logout)</button>
       </div>
-      <div id="passcode-status-desc" style="font-size:9px;color:var(--t3);margin-top:3px">পাসকোড সেট করলে অ্যাপ ওপেন করার সময় পিন নম্বর চাইবে।</div>
     </div>
 
     <div class="sett-row" style="display:flex;align-items:center;justify-content:space-between">
@@ -1116,23 +1121,13 @@ function toggleSettings(show){
     document.getElementById('settBybitKey').value=settings.bybitKey||'';
     document.getElementById('settBybitSecret').value=settings.bybitSecret||'';
     
-    // Passcode UI Init
-    const inputEl = document.getElementById('settPasscode');
-    const btnEl = document.getElementById('btn-passcode-action');
-    const descEl = document.getElementById('passcode-status-desc');
-    if(inputEl && btnEl){
-      inputEl.value = '';
-      const existingHash = localStorage.getItem('ltc_passcode_hash');
-      if(existingHash){
-        inputEl.placeholder = 'পাসকোড রিমুভ করতে পিন দিন...';
-        btnEl.textContent = 'পিন মুছুন';
-        if(descEl) descEl.textContent = '🔐 পাসকোড লক সক্রিয় আছে। পিন পরিবর্তন করতে এটি প্রথমে মুছুন।';
-      }else{
-        inputEl.placeholder = 'Set 4-6 digit numeric PIN...';
-        btnEl.textContent = 'সেট পিন';
-        if(descEl) descEl.textContent = 'পাসকোড সেট করলে অ্যাপ ওপেন করার সময় পিন নম্বর চাইবে।';
-      }
+    // User display
+    const userEl = document.getElementById('sett-username-display');
+    if(userEl){
+      userEl.textContent = localStorage.getItem('ltc_user_name') || 'Guest';
     }
+    const pwEl = document.getElementById('settNewPassword');
+    if(pwEl) pwEl.value = '';
   }
 }
 function saveSettings(){
@@ -1158,153 +1153,213 @@ async function getHashSHA256(str){
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
-async function handlePasscodeSetup(){
-  const inputEl = document.getElementById('settPasscode');
-  const btnEl = document.getElementById('btn-passcode-action');
-  const descEl = document.getElementById('passcode-status-desc');
-  if(!inputEl || !btnEl) return;
-  const val = inputEl.value.trim();
-  const existingHash = localStorage.getItem('ltc_passcode_hash');
-  if(existingHash){
-    if(!val){
-      showToast('❌ পাসকোড মুছতে বর্তমান পিনটি ইনপুট করুন!','below');
+async function handlePasswordChange(){
+  const pwEl = document.getElementById('settNewPassword');
+  if(!pwEl) return;
+  const newPw = pwEl.value;
+  if(newPw.length < 6){
+    showToast('❌ পাসওয়ার্ড কমপক্ষে ৬ ক্যারেক্টার হতে হবে!','below');
+    return;
+  }
+  const hash = await getHashSHA256(newPw);
+  localStorage.setItem('ltc_user_pwd_hash', hash);
+  showToast('✅ পাসওয়ার্ড সফলভাবে আপডেট করা হয়েছে!','above');
+  pwEl.value = '';
+}
+function handleUserLogout(){
+  toggleSettings(false);
+  showAuthOverlay();
+}
+function showAuthOverlay(){
+  if(document.getElementById('terminal-auth-screen')) return;
+  
+  const auth = document.createElement('div');
+  auth.id = 'terminal-auth-screen';
+  auth.style = 'position:fixed;inset:0;background:var(--bg);z-index:999999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(15px);';
+  
+  const isReg = !!localStorage.getItem('ltc_user_pwd_hash');
+  const username = localStorage.getItem('ltc_user_name') || 'User';
+  
+  if(!isReg){
+    auth.innerHTML = `
+      <div style="width:100%;max-width:340px;display:flex;flex-direction:column;gap:24px;">
+        <div style="text-align:center;">
+          <div style="font-family:var(--display);font-size:20px;font-weight:900;letter-spacing:2px;color:var(--g);text-shadow:0 0 10px rgba(0,245,168,0.3)">
+            LTC/HEDGE <span style="color:var(--c)">TERMINAL</span>
+          </div>
+          <div style="font-size:9px;color:var(--t3);letter-spacing:1.5px;margin-top:6px;text-transform:uppercase">User Registration Setup</div>
+        </div>
+        
+        <div style="width:100%;background:var(--bg2);border:.5px solid var(--bd2);border-radius:16px;padding:24px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:14px;">
+          <div style="font-size:12px;color:var(--t2);text-align:center;font-weight:600">টার্মিনাল সুরক্ষিত করতে নতুন অ্যাকাউন্ট খুলুন</div>
+          
+          <div class="sett-field" style="margin-bottom:0">
+            <label class="sett-label">Username</label>
+            <input class="sett-inp" id="reg-username" type="text" placeholder="Choose a username...">
+          </div>
+          
+          <div class="sett-field" style="margin-bottom:0">
+            <label class="sett-label">Password</label>
+            <input class="sett-inp" id="reg-password" type="password" placeholder="Min 6 characters...">
+          </div>
+          
+          <div class="sett-field" style="margin-bottom:0">
+            <label class="sett-label">Confirm Password</label>
+            <input class="sett-inp" id="reg-confirm" type="password" placeholder="Confirm your password...">
+          </div>
+          
+          <button class="btn btng" onclick="submitRegistration()" style="width:100%;padding:12px;margin-top:10px;font-weight:700">✓ অ্যাকাউন্ট তৈরি করুন (Register)</button>
+        </div>
+      </div>
+    `;
+  } else {
+    auth.innerHTML = `
+      <div style="width:100%;max-width:340px;display:flex;flex-direction:column;gap:24px;">
+        <div style="text-align:center;">
+          <div style="font-family:var(--display);font-size:20px;font-weight:900;letter-spacing:2px;color:var(--g);text-shadow:0 0 10px rgba(0,245,168,0.3)">
+            LTC/HEDGE <span style="color:var(--c)">TERMINAL</span>
+          </div>
+          <div style="font-size:9px;color:var(--t3);letter-spacing:1.5px;margin-top:6px;text-transform:uppercase">User Security Login</div>
+        </div>
+        
+        <div style="width:100%;background:var(--bg2);border:.5px solid var(--bd2);border-radius:16px;padding:24px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:14px;align-items:center" id="login-card">
+          <div style="font-size:12px;color:var(--t2);text-align:center;font-weight:600">স্বাগতম, <span style="color:var(--g)">${username}</span>! টার্মিনাল আনলক করুন।</div>
+          
+          <input class="sett-inp" id="login-password" type="password" placeholder="Enter password..." style="width:100%;font-size:16px;padding:12px;text-align:center;border-color:var(--bd3)">
+          
+          <button class="btn btng" onclick="submitLogin()" style="width:100%;padding:12px;font-weight:700">✓ আনলক করুন (Unlock)</button>
+          
+          <button class="btn" onclick="resetTerminalAccount()" style="background:transparent;border:none;color:var(--r);font-size:10px;cursor:pointer;margin-top:10px;text-decoration:underline">⚠️ একাউন্ট রিসেট (Reset Account)</button>
+        </div>
+      </div>
+    `;
+  }
+  document.body.appendChild(auth);
+  
+  const authKeyHandler = (e) => {
+    if(!document.getElementById('terminal-auth-screen')) {
+      window.removeEventListener('keydown', authKeyHandler);
       return;
     }
-    const enteredHash = await getHashSHA256(val);
-    if(enteredHash === existingHash){
-      localStorage.removeItem('ltc_passcode_hash');
-      showToast('✅ পাসকোড লক নিষ্ক্রিয় করা হয়েছে!','above');
-      inputEl.value = '';
-      inputEl.placeholder = 'Set 4-6 digit numeric PIN...';
-      btnEl.textContent = 'সেট পিন';
-      if(descEl) descEl.textContent = 'পাসকোড সেট করলে অ্যাপ ওপেন করার সময় পিন নম্বর চাইবে।';
-    }else{
-      showToast('❌ ভুল পাসকোড!','below');
+    if(e.key === 'Enter'){
+      if(!isReg){
+        submitRegistration();
+      }else{
+        submitLogin();
+      }
     }
-  }else{
-    if(!/^\d{4,6}$/.test(val)){
-      showToast('❌ পাসকোড ৪ থেকে ৬ ডিজিটের সংখ্যা হতে হবে!','below');
-      return;
-    }
-    const newHash = await getHashSHA256(val);
-    localStorage.setItem('ltc_passcode_hash', newHash);
-    showToast('✅ পাসকোড সফলভাবে সেট করা হয়েছে!','above');
-    inputEl.value = '';
-    inputEl.placeholder = 'পাসকোড রিমুভ করতে পিন দিন...';
-    btnEl.textContent = 'পিন মুছুন';
-    if(descEl) descEl.textContent = '🔐 পাসকোড লক সক্রিয় আছে। পিন পরিবর্তন করতে এটি প্রথমে মুছুন।';
+  };
+  window.addEventListener('keydown', authKeyHandler);
+}
+async function submitRegistration(){
+  const uEl = document.getElementById('reg-username');
+  const pEl = document.getElementById('reg-password');
+  const cEl = document.getElementById('reg-confirm');
+  if(!uEl || !pEl || !cEl) return;
+  
+  const u = uEl.value.trim();
+  const p = pEl.value;
+  const c = cEl.value;
+  
+  if(!u){
+    showToast('❌ অনুগ্রহ করে একটি ইউজারনেম দিন!','below');
+    return;
+  }
+  if(p.length < 6){
+    showToast('❌ পাসওয়ার্ড কমপক্ষে ৬ ক্যারেক্টার হতে হবে!','below');
+    return;
+  }
+  if(p !== c){
+    showToast('❌ পাসওয়ার্ড দুটি মিলছে না!','below');
+    return;
+  }
+  
+  const hash = await getHashSHA256(p);
+  localStorage.setItem('ltc_user_name', u);
+  localStorage.setItem('ltc_user_pwd_hash', hash);
+  
+  showToast('✅ ইউজার অ্যাকাউন্ট সফলভাবে তৈরি হয়েছে!','above');
+  
+  const auth = document.getElementById('terminal-auth-screen');
+  if(auth){
+    auth.style.transition = 'opacity 0.3s, transform 0.3s';
+    auth.style.opacity = '0';
+    auth.style.transform = 'scale(1.05)';
+    setTimeout(() => auth.remove(), 300);
   }
 }
-function showLockScreen(correctHash){
-  const lock = document.createElement('div');
-  lock.id = 'terminal-lock-screen';
-  lock.style = 'position:fixed;inset:0;background:var(--bg);z-index:999999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(15px);';
-  lock.innerHTML = `
-    <div style="width:100%;max-width:320px;display:flex;flex-direction:column;align-items:center;gap:24px;">
-      <div style="text-align:center;">
-        <div style="font-family:var(--display);font-size:20px;font-weight:900;letter-spacing:2px;color:var(--g);text-shadow:0 0 10px rgba(0,245,168,0.3)">
-          LTC/HEDGE <span style="color:var(--c)">TERMINAL</span>
-        </div>
-        <div style="font-size:10px;color:var(--t3);letter-spacing:1px;margin-top:6px;text-transform:uppercase">Security Lock Screen</div>
-      </div>
-      
-      <div style="width:100%;background:var(--bg2);border:.5px solid var(--bd2);border-radius:16px;padding:24px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:16px;align-items:center">
-        <div style="font-size:12px;color:var(--t2);text-align:center">টার্মিনাল আনলক করতে পিন কোড দিন</div>
-        
-        <input id="lock-pin-input" type="password" readonly style="width:100%;background:var(--bg3);border:.5px solid var(--bd2);color:var(--g);font-family:var(--mono);font-size:24px;text-align:center;padding:10px;border-radius:10px;letter-spacing:8px;outline:none;">
-        
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:100%;">
-          ${[1,2,3,4,5,6,7,8,9].map(n => `<button class="pin-btn" onclick="pressLockPin('${n}')" style="background:var(--bg3);border:.5px solid var(--bd2);color:var(--t);font-family:var(--mono);font-size:18px;font-weight:700;padding:14px;border-radius:10px;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;justify-content:center;">${n}</button>`).join('')}
-          <button class="pin-btn" onclick="pressLockPin('clear')" style="background:var(--bg3);border:.5px solid var(--bd2);color:var(--r);font-family:var(--sans);font-size:12px;font-weight:700;padding:14px;border-radius:10px;cursor:pointer;">Clear</button>
-          <button class="pin-btn" onclick="pressLockPin('0')" style="background:var(--bg3);border:.5px solid var(--bd2);color:var(--t);font-family:var(--mono);font-size:18px;font-weight:700;padding:14px;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;">0</button>
-          <button class="pin-btn" onclick="pressLockPin('enter')" style="background:var(--g);border:none;color:#000;font-family:var(--sans);font-size:12px;font-weight:700;padding:14px;border-radius:10px;cursor:pointer;">Enter</button>
-        </div>
-      </div>
-    </div>
-  `;
-  document.body.appendChild(lock);
+let loginAttempts = 0;
+let lockoutTimer = null;
+async function submitLogin(){
+  if(lockoutTimer) {
+    showToast('❌ খুব বেশি ভুল চেষ্টা! অনুগ্রহ করে অপেক্ষা করুন।','below');
+    return;
+  }
+  const pEl = document.getElementById('login-password');
+  if(!pEl) return;
+  const p = pEl.value;
+  if(!p){
+    showToast('❌ পাসওয়ার্ড ইনপুট করুন!','below');
+    return;
+  }
   
-  const style = document.createElement('style');
-  style.id = 'lock-screen-styles';
-  style.innerHTML = `
-    .pin-btn:hover { background:var(--bd) !important; border-color:var(--g) !important; color:var(--g) !important; }
-    .pin-btn:active { transform:scale(0.95); }
-    @keyframes shake {
-      0%, 100% { transform: translateX(0); }
-      20%, 60% { transform: translateX(-8px); }
-      40%, 80% { transform: translateX(8px); }
+  const correctHash = localStorage.getItem('ltc_user_pwd_hash');
+  const hash = await getHashSHA256(p);
+  if(hash === correctHash){
+    loginAttempts = 0;
+    try {
+      const actx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = actx.createOscillator();
+      const gain = actx.createGain();
+      osc.connect(gain);
+      gain.connect(actx.destination);
+      osc.frequency.setValueAtTime(880, actx.currentTime);
+      gain.gain.setValueAtTime(0.05, actx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + 0.15);
+      osc.start();
+      osc.stop(actx.currentTime + 0.15);
+    } catch(e) {}
+    
+    const auth = document.getElementById('terminal-auth-screen');
+    if(auth){
+      auth.style.transition = 'opacity 0.3s, transform 0.3s';
+      auth.style.opacity = '0';
+      auth.style.transform = 'scale(1.05)';
+      setTimeout(() => auth.remove(), 300);
     }
-  `;
-  document.head.appendChild(style);
-  
-  let currentPin = '';
-  window.pressLockPin = async function(key){
-    const pinIn = document.getElementById('lock-pin-input');
-    if(!pinIn) return;
-    if(key === 'clear'){
-      currentPin = '';
-      pinIn.value = '';
-    }else if(key === 'enter'){
-      if(currentPin.length < 4){
-        showToast('❌ কমপক্ষে ৪ ডিজিটের পিন দিন!','below');
-        return;
-      }
-      const hashed = await getHashSHA256(currentPin);
-      if(hashed === correctHash){
-        try {
-          const actx = new (window.AudioContext || window.webkitAudioContext)();
-          const osc = actx.createOscillator();
-          const gain = actx.createGain();
-          osc.connect(gain);
-          gain.connect(actx.destination);
-          osc.frequency.setValueAtTime(880, actx.currentTime);
-          gain.gain.setValueAtTime(0.05, actx.currentTime);
-          gain.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + 0.15);
-          osc.start();
-          osc.stop(actx.currentTime + 0.15);
-        } catch(e) {}
-        lock.style.transition = 'opacity 0.3s, transform 0.3s';
-        lock.style.opacity = '0';
-        lock.style.transform = 'scale(1.05)';
-        setTimeout(() => {
-          lock.remove();
-          const s = document.getElementById('lock-screen-styles');
-          if(s) s.remove();
-        }, 300);
-      }else{
-        currentPin = '';
-        pinIn.value = '';
-        pinIn.style.borderColor = 'var(--r)';
-        pinIn.style.color = 'var(--r)';
-        const card = lock.querySelector('div > div:nth-child(2)');
-        if(card){
-          card.style.animation = 'shake 0.3s ease';
-          setTimeout(() => card.style.animation = '', 300);
-        }
-        showToast('❌ ভুল পাসকোড! পুনরায় চেষ্টা করুন।','below');
-        setTimeout(() => {
-          pinIn.style.borderColor = 'var(--bd2)';
-          pinIn.style.color = 'var(--g)';
-        }, 1000);
-      }
+  }else{
+    loginAttempts++;
+    pEl.value = '';
+    pEl.style.borderColor = 'var(--r)';
+    pEl.style.color = 'var(--r)';
+    const card = document.getElementById('login-card');
+    if(card){
+      card.style.animation = 'shake 0.3s ease';
+      setTimeout(() => card.style.animation = '', 300);
+    }
+    
+    if(loginAttempts >= 3){
+      showToast('❌ ৩ বার ভুল পাসওয়ার্ড! ১৫ সেকেন্ডের জন্য লকআউট করা হলো।','below');
+      lockoutTimer = setTimeout(() => {
+        lockoutTimer = null;
+        loginAttempts = 0;
+      }, 15000);
     }else{
-      if(currentPin.length >= 6) return;
-      currentPin += key;
-      pinIn.value = '*'.repeat(currentPin.length);
+      showToast(`❌ ভুল পাসওয়ার্ড! অবশিষ্ট চেষ্টা: \${3 - loginAttempts}`,'below');
     }
-  };
-  
-  const keyHandler = (e) => {
-    if(!document.getElementById('terminal-lock-screen')) return;
-    if(e.key >= '0' && e.key <= '9'){
-      pressLockPin(e.key);
-    }else if(e.key === 'Enter'){
-      pressLockPin('enter');
-    }else if(e.key === 'Backspace' || e.key === 'Escape'){
-      pressLockPin('clear');
-    }
-  };
-  window.addEventListener('keydown', keyHandler);
+    
+    setTimeout(() => {
+      pEl.style.borderColor = 'var(--bd3)';
+      pEl.style.color = 'var(--t)';
+    }, 1000);
+  }
+}
+function resetTerminalAccount(){
+  const conf = confirm("⚠️ আপনি কি সত্যিই টার্মিনাল রিসেট করতে চান?\n\nএটি করলে আপনার এপিআই কি, জার্নাল হিস্ট্রি, এবং ইউজার অ্যাকাউন্ট সম্পূর্ণ ডিলিট হয়ে যাবে এবং পেজ রিলোড হবে।");
+  if(conf){
+    localStorage.clear();
+    location.reload();
+  }
 }
 
 function clearChartPriceLines(){
@@ -3284,6 +3339,7 @@ async function periodicRefresh(){
 
 // ─── INIT ───
 document.addEventListener('DOMContentLoaded',()=>{
+  showAuthOverlay();
   initChart();
   initWS();
   loadAll();
