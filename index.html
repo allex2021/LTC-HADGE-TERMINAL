@@ -995,9 +995,12 @@ body>*{position:relative;z-index:1}
       <input class="sett-inp" id="settTgChatId" type="text" placeholder="e.g. 987654321">
     </div>
     
-    <div class="sett-row">
+    <div class="sett-row" style="display:flex;align-items:center;justify-content:space-between">
       <span class="sett-row-lbl">🔔 অডিও অ্যালার্ট (TTS)</span>
-      <input class="sett-check" id="settAudioAlerts" type="checkbox">
+      <div style="display:flex;align-items:center;gap:10px">
+        <button type="button" class="btn btnsm" style="background:var(--bg3);color:var(--t2);border:.5px solid var(--bd2);padding:4px 8px;font-size:10px;border-radius:6px;cursor:pointer;font-weight:700" onclick="testAudioAlert(event)">🔊 টেস্ট</button>
+        <input class="sett-check" id="settAudioAlerts" type="checkbox">
+      </div>
     </div>
     
     <div class="sett-btns">
@@ -1231,6 +1234,7 @@ function updatePrice(px,chgPct,high,low){
       // Voice alert
       if(settings.audioAlerts){
         try{
+          playBeepSound('double');
           const utterance = new SpeechSynthesisUtterance(`Whale activity detected. ${currentSymbol} is ${movePct > 0 ? 'spiking' : 'dumping'} rapidly.`);
           utterance.rate = 1.0;
           window.speechSynthesis.speak(utterance);
@@ -1421,6 +1425,7 @@ function markBW(){
         // Voice Alert
         if(settings.audioAlerts){
           try{
+            playBeepSound('single');
             const utterance = new SpeechSynthesisUtterance(`Arbitrage opportunity. Buy ${buyEx}, sell ${sellEx}.`);
             utterance.rate = 0.95;
             window.speechSynthesis.speak(utterance);
@@ -1850,12 +1855,53 @@ function renderAlerts(){
       <button class="alert-del" onclick="removeAlert(${a.id})">✕</button>
     </div>`).join('');
 }
+function playBeepSound(type='single'){
+  if(!settings.audioAlerts)return;
+  try{
+    const AudioContext=window.AudioContext||window.webkitAudioContext;
+    if(!AudioContext)return;
+    const ctx=new AudioContext();
+    const playTone=(freq,duration,startTime)=>{
+      const osc=ctx.createOscillator();
+      const gain=ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type='sine';
+      osc.frequency.setValueAtTime(freq,startTime);
+      gain.gain.setValueAtTime(0.08,startTime);
+      gain.gain.exponentialRampToValueAtTime(0.001,startTime+duration);
+      osc.start(startTime);
+      osc.stop(startTime+duration);
+    };
+    const now=ctx.currentTime;
+    if(type==='double'){
+      playTone(1200,0.12,now);
+      playTone(1200,0.12,now+0.18);
+    }else{
+      playTone(880,0.25,now);
+    }
+  }catch(e){}
+}
 function checkAlerts(px){
   let fired=false;
   priceAlerts.forEach(a=>{
     if(a.triggered)return;
-    if(a.type==='above'&&px>=a.price){a.triggered=true;fired=true;showToast(`🔔 ALERT: LTC $${px.toFixed(2)} — $${a.price.toFixed(2)} পার করেছে ↑`,'above');}
-    else if(a.type==='below'&&px<=a.price){a.triggered=true;fired=true;showToast(`🔔 ALERT: LTC $${px.toFixed(2)} — $${a.price.toFixed(2)} নিচে নেমেছে ↓`,'below');}
+    if(a.type==='above'&&px>=a.price){
+      a.triggered=true;
+      fired=true;
+      showToast(`🔔 ALERT: ${currentSymbol} $${px.toFixed(2)} — $${a.price.toFixed(2)} পার করেছে ↑`,'above');
+      playBeepSound('single');
+      playAudioAlert(`${currentSymbol} has crossed above ${a.price.toFixed(1)} dollars`);
+      sendTelegramAlert(`🔔 [PRICE ALERT] ${currentSymbol} has crossed ABOVE $${a.price.toFixed(2)}! Current Price: $${px.toFixed(2)}`);
+    }
+    else if(a.type==='below'&&px<=a.price){
+      a.triggered=true;
+      fired=true;
+      showToast(`🔔 ALERT: ${currentSymbol} $${px.toFixed(2)} — $${a.price.toFixed(2)} নিচে নেমেছে ↓`,'below');
+      playBeepSound('single');
+      playAudioAlert(`${currentSymbol} has crossed below ${a.price.toFixed(1)} dollars`);
+      sendTelegramAlert(`🔔 [PRICE ALERT] ${currentSymbol} has crossed BELOW $${a.price.toFixed(2)}! Current Price: $${px.toFixed(2)}`);
+    }
   });
   if(fired){try{localStorage.setItem('ltc_alerts_v7',JSON.stringify(priceAlerts));}catch(e){}renderAlerts();}
 }
@@ -1866,6 +1912,31 @@ function playAudioAlert(msg){
     utterance.lang='en-US';
     window.speechSynthesis.speak(utterance);
   }catch(e){}
+}
+function testAudioAlert(e){
+  if(e)e.preventDefault();
+  try{
+    const AudioContext=window.AudioContext||window.webkitAudioContext;
+    if(AudioContext){
+      const ctx=new AudioContext();
+      const osc=ctx.createOscillator();
+      const gain=ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type='sine';
+      osc.frequency.setValueAtTime(880,ctx.currentTime);
+      gain.gain.setValueAtTime(0.08,ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.25);
+      osc.start();
+      osc.stop(ctx.currentTime+0.25);
+    }
+  }catch(err){}
+  try{
+    const utterance=new SpeechSynthesisUtterance("Audio alert system is working correctly.");
+    utterance.lang='en-US';
+    utterance.rate=1.0;
+    window.speechSynthesis.speak(utterance);
+  }catch(err){}
 }
 async function sendTelegramAlert(msg){
   if(!settings.tgToken||!settings.tgChatId)return;
