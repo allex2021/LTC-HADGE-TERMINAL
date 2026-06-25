@@ -475,7 +475,14 @@ body>*{position:relative;z-index:1}
     <div class="price-main" id="mp">$—</div>
     <div style="display:flex;flex-direction:column;gap:4px">
       <span id="mc" class="bx bn3">24h —%</span>
-      <span id="mhl" class="bx bn3">H/L —</span>
+      <div id="mhlBar" style="display:flex;align-items:center;gap:6px;margin-top:4px;width:150px">
+        <span id="mhl-low" style="color:var(--r);font-family:var(--mono);font-size:9px">$—</span>
+        <div style="flex:1;height:4px;background:var(--bg3);border-radius:2px;position:relative;border:.5px solid var(--bd2)">
+          <div id="mhl-fill" style="position:absolute;top:0;bottom:0;left:0;background:linear-gradient(90deg,var(--r),var(--g));width:50%;border-radius:2px"></div>
+          <div id="mhl-dot" style="position:absolute;top:50%;transform:translate(-50%,-50%);left:50%;width:6px;height:6px;background:var(--t);border-radius:50%;box-shadow:0 0 4px var(--g)"></div>
+        </div>
+        <span id="mhl-high" style="color:var(--g);font-family:var(--mono);font-size:9px">$—</span>
+      </div>
     </div>
   </div>
   <div class="price-meta" id="priceMeta">
@@ -1025,6 +1032,7 @@ let wsConn=null,wsReconnectTimer=null;
 let tvChart=null,candleSeries=null;
 let activePriceLines=[];
 let priceAlerts=[];
+let priceHistory=[];
 let alertType='above';
 let oiData={current:0,prev:0};
 let lsRatio=1.0;
@@ -1191,16 +1199,53 @@ function updatePrice(px,chgPct,high,low){
 
   const chgEl=document.getElementById('mc');
   if(chgEl){chgEl.textContent='24h '+(chgPct>=0?'+':'')+chgPct.toFixed(2)+'%';chgEl.className='bx '+(chgPct>=0?'bg2':'br2');}
-  const hlEl=document.getElementById('mhl');
-  if(hlEl)hlEl.textContent=`H:$${high.toFixed(2)} L:$${low.toFixed(2)}`;
+  const lowEl=document.getElementById('mhl-low'),highEl=document.getElementById('mhl-high');
+  const fillEl=document.getElementById('mhl-fill'),dotEl=document.getElementById('mhl-dot');
+  if(lowEl)lowEl.textContent=`$${low.toFixed(2)}`;
+  if(highEl)highEl.textContent=`$${high.toFixed(2)}`;
+  if(fillEl&&dotEl&&high>low){
+    const pct=Math.max(0,Math.min(100,((px-low)/(high-low))*100));
+    fillEl.style.width=`${pct}%`;
+    dotEl.style.left=`${pct}%`;
+  }
   const n2=new Date();
   const upd=document.getElementById('updTime');
   if(upd)upd.textContent=pad(n2.getUTCHours())+':'+pad(n2.getUTCMinutes())+':'+pad(n2.getUTCSeconds())+' UTC';
 
-  // Whale detection
-  if(Math.abs(chgPct)>3){
+  // High-frequency Whale Volatility Spike Alert (sliding 10s window)
+  const now = Date.now();
+  priceHistory.push({price: px, time: now});
+  priceHistory = priceHistory.filter(item => now - item.time <= 10000);
+  if(priceHistory.length > 2){
+    const oldestPrice = priceHistory[0].price;
+    const movePct = ((px - oldestPrice) / oldestPrice) * 100;
+    if(Math.abs(movePct) >= 0.35){
+      priceHistory = []; // Reset window to prevent duplicate alerts
+      const dir = movePct > 0 ? 'SPIKING ↑' : 'DUMPING ↓';
+      const msg = `🐳 WHALE ALERT: ${currentSymbol} is ${dir} (${Math.abs(movePct).toFixed(2)}% in 10s) · Price: $${px.toFixed(2)}`;
+      showToast(msg, 'above');
+      const wb=document.getElementById('wbar'),wm=document.getElementById('wmsg');
+      if(wm)wm.textContent=msg;
+      if(wb)wb.classList.add('on');
+      
+      // Voice alert
+      if(settings.audioAlerts){
+        try{
+          const utterance = new SpeechSynthesisUtterance(`Whale activity detected. ${currentSymbol} is ${movePct > 0 ? 'spiking' : 'dumping'} rapidly.`);
+          utterance.rate = 1.0;
+          window.speechSynthesis.speak(utterance);
+        }catch(e){}
+      }
+      
+      // Telegram Alert
+      sendTelegramAlert(`🐳 [WHALE ACTIVITY DETECTED]\n${currentSymbol} is ${dir}!\n📈 Movement: ${movePct > 0 ? '+' : ''}${movePct.toFixed(2)}% (within 10 seconds)\n💵 Price: $${px.toFixed(2)}`);
+    }
+  }
+
+  // 24h Change Alert
+  if(Math.abs(chgPct)>3.5){
     const wb=document.getElementById('wbar'),wm=document.getElementById('wmsg');
-    if(wm)wm.textContent=`বড় মুভ! LTC ${chgPct>0?'↑'+chgPct.toFixed(2)+'%':'↓'+Math.abs(chgPct).toFixed(2)+'%'} · হেজ পজিশন চেক করুন`;
+    if(wm)wm.textContent=`বড় মুভ! ${currentSymbol} ২৪ ঘণ্টায় ${chgPct>0?'↑'+chgPct.toFixed(2)+'%':'↓'+Math.abs(chgPct).toFixed(2)+'%'} · হেজ পজিশন চেক করুন`;
     if(wb)wb.classList.add('on');
   }
 
