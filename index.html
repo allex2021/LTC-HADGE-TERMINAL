@@ -46,6 +46,11 @@ body>*{position:relative;z-index:1}
 @keyframes tickUp{0%{transform:translateY(4px);opacity:0}100%{transform:translateY(0);opacity:1}}
 @keyframes tickDown{0%{transform:translateY(-4px);opacity:0}100%{transform:translateY(0);opacity:1}}
 @keyframes alertIn{from{transform:translateX(110%)}to{transform:translateX(0)}}
+@keyframes perfectGlow{0%,100%{box-shadow:0 0 10px rgba(0,245,168,.3),0 0 20px rgba(0,245,168,.15)}50%{box-shadow:0 0 30px rgba(0,245,168,.7),0 0 60px rgba(0,245,168,.3)}}
+@keyframes perfectScore{0%{transform:scale(1)}50%{transform:scale(1.12)}100%{transform:scale(1)}}
+.heff-perfect{animation:perfectGlow 1.5s ease-in-out infinite!important;border-color:rgba(0,245,168,.7)!important;}
+.heff-score-perfect{animation:perfectScore 0.6s ease 3;color:var(--g)!important;text-shadow:0 0 14px rgba(0,245,168,.8);}
+
 
 .dot{width:7px;height:7px;border-radius:50%;background:var(--g);display:inline-block;animation:pulse 1.8s infinite;box-shadow:0 0 6px var(--g)}
 .spin{display:inline-block;width:14px;height:14px;border:2px solid var(--bd3);border-top-color:var(--g);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle}
@@ -2135,6 +2140,32 @@ function updateRiskMeter(px,llq,slq){
   const bal=(Math.min(lm,sm)/Math.max(lm,sm)*100).toFixed(0)+'%';
   set('risk-bal',bal,'var(--t)');
 }
+let _lastHeffAlertScore = 0; // prevent repeated alerts at same threshold
+
+function playPerfectHedgeSound(){
+  if(!settings.audioAlerts)return;
+  try{
+    const AudioContext=window.AudioContext||window.webkitAudioContext;
+    if(!AudioContext)return;
+    const ctx=new AudioContext();
+    const playTone=(freq,dur,start,vol=0.12)=>{
+      const osc=ctx.createOscillator();
+      const gain=ctx.createGain();
+      osc.connect(gain);gain.connect(ctx.destination);
+      osc.type='sine';
+      osc.frequency.setValueAtTime(freq,start);
+      gain.gain.setValueAtTime(vol,start);
+      gain.gain.exponentialRampToValueAtTime(0.001,start+dur);
+      osc.start(start);osc.stop(start+dur);
+    };
+    const t=ctx.currentTime;
+    // Triumphant 3-tone victory chord: C5 → E5 → G5
+    playTone(523,0.18,t,0.10);      // C5
+    playTone(659,0.18,t+0.22,0.10); // E5
+    playTone(784,0.35,t+0.44,0.14); // G5 (louder, longer)
+  }catch(e){}
+}
+
 function updateHedgeEfficiency(px,sr,lm,sm){
   if(!px)return;
   const total=lm+sm;
@@ -2157,7 +2188,43 @@ function updateHedgeEfficiency(px,sr,lm,sm){
   s('heff-size',sizeScore+'/40',sizeScore>=30?'var(--g)':sizeScore>=20?'var(--a)':'var(--r)');
   s('heff-fund',frScore+'/30',frScore>=20?'var(--g)':frScore>=10?'var(--a)':'var(--r)');
   s('heff-sr',srScoreVal+'/30',srScoreVal>=20?'var(--g)':srScoreVal>=12?'var(--a)':'var(--r)');
+
+  // ─── PERFECT SCORE SOUND ALERT ───
+  // Alert tiers: 80+ = Perfect (green glow), 70+ = Good
+  if(score>=80 && _lastHeffAlertScore<80){
+    _lastHeffAlertScore=80;
+    // Play triumphant sound
+    playPerfectHedgeSound();
+    // Show toast
+    showToast('🏆 হেজ এফিশিয়েন্সি PERFECT! স্কোর: '+score+'% — এখনই ট্রেড করুন!','above');
+    // Voice alert
+    try{
+      const u=new SpeechSynthesisUtterance('Perfect hedge score! '+score+' percent. Ideal entry condition.');
+      u.rate=1.0;u.pitch=1.2;
+      window.speechSynthesis.speak(u);
+    }catch(e){}
+    // Glow + animate the heff panel with CSS classes
+    const heff=document.querySelector('.heff');
+    const scoreEl=document.getElementById('heff-score-val');
+    if(heff){
+      heff.classList.add('heff-perfect');
+      setTimeout(()=>{heff.classList.remove('heff-perfect');},10000);
+    }
+    if(scoreEl){
+      scoreEl.classList.add('heff-score-perfect');
+      setTimeout(()=>{scoreEl.classList.remove('heff-score-perfect');},2000);
+    }
+
+  } else if(score>=70 && score<80 && _lastHeffAlertScore<70){
+    _lastHeffAlertScore=70;
+    playBeepSound('double');
+    showToast('✅ হেজ স্কোর ভালো: '+score+'% — ট্রেড এন্ট্রির জন্য উপযুক্ত','above');
+  } else if(score<60){
+    // Reset so next perfect alert can fire again
+    _lastHeffAlertScore=0;
+  }
 }
+
 
 // ─── CONFLUENCE ───
 function updateConf(px,sr,rsi,chg){
