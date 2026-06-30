@@ -3644,7 +3644,8 @@ async function loadIdeas(){
   list.innerHTML = '<div style="text-align:center;padding:30px;color:var(--t3)"><span class="spin"></span><br><br>আইডিয়া লোড হচ্ছে...</div>';
   
   try {
-    const r = await fetch('http://localhost:8000/ideas');
+    const baseUrl = window.location.origin.startsWith('http') ? window.location.origin : 'http://localhost:8000';
+    const r = await fetch(`${baseUrl}/ideas`);
     const d = await r.json();
     const ideas = d.ideas || [];
     

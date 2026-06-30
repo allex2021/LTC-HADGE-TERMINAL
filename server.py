@@ -121,47 +121,66 @@ def get_tradingview_ideas():
     
     ideas = []
     for art in articles:
-        title_match = re.search(r'data-qa-id="ui-lib-card-link-title"[^>]*href="([^"]+)"[^>]*>(.*?)</a>', art, re.DOTALL)
-        if not title_match:
+        # Title and Link (order-independent)
+        title_tag_match = re.search(r'(<a\b[^>]*data-qa-id="ui-lib-card-link-title"[^>]*>)(.*?)</a>', art, re.DOTALL)
+        if not title_tag_match:
             continue
-        link = title_match.group(1)
+        tag_attrs = title_tag_match.group(1)
+        title_html = title_tag_match.group(2)
+        
+        title = re.sub(r'<[^>]+>', '', title_html).strip()
+        href_match = re.search(r'href="([^"]+)"', tag_attrs)
+        link = href_match.group(1) if href_match else ""
         if not link.startswith('http'):
             link = 'https://www.tradingview.com' + link
-        title = re.sub(r'<[^>]+>', '', title_match.group(2)).strip()
         
-        para_match = re.search(r'data-qa-id="ui-lib-card-link-paragraph"[^>]*>(.*?)</a>', art, re.DOTALL)
+        # Description / Paragraph (order-independent)
+        para_tag_match = re.search(r'<a\b[^>]*data-qa-id="ui-lib-card-link-paragraph"[^>]*>(.*?)</a>', art, re.DOTALL)
         para = ""
-        if para_match:
-            para = re.sub(r'<[^>]+>', '', para_match.group(1)).strip()
+        if para_tag_match:
+            para_html = para_tag_match.group(1)
+            para = re.sub(r'<[^>]+>', '', para_html).strip()
             para = re.sub(r'\s+', ' ', para)
             
-        img_match = re.search(r'<img[^>]*src="([^"]+)"', art)
+        # Image (extract actual chart image from the image link block)
         img_url = ""
-        if img_match:
-            img_url = img_match.group(1)
+        img_container = re.search(r'data-qa-id="ui-lib-card-link-image"[^>]*>(.*?)</a>', art, re.DOTALL)
+        if img_container:
+            img_match = re.search(r'<img[^>]*src="([^"]+)"', img_container.group(1))
+            if img_match:
+                img_url = img_match.group(1)
+        if not img_url:
+            # Fallback to any img tag if link image not found
+            img_match = re.search(r'<img[^>]*src="([^"]+)"', art)
+            img_url = img_match.group(1) if img_match else ""
+        if img_url.startswith('//'):
+            img_url = 'https:' + img_url
             
-        author_match = re.search(r'data-qa-id="ui-lib-card-link-author"[^>]*>.*?href="[^"]+"[^>]*>.*?by\s+([^<]+)</a>', art, re.DOTALL)
-        author = "Unknown"
-        if author_match:
-            author = author_match.group(1).strip()
+        # Author / User
+        author_match = re.search(r'/u/([^/]+)/', art)
+        author = author_match.group(1).strip() if author_match else "Unknown"
             
+        # Date
         time_match = re.search(r'dateTime="([^"]+)"', art)
-        pub_date = ""
-        if time_match:
-            pub_date = time_match.group(1)
+        pub_date = time_match.group(1) if time_match else ""
             
+        # Strategy
         strategy = "Neutral"
-        if 'strategyLong-' in art or 'title="Long"' in art:
+        if 'title="Long"' in art or 'strategyLong-' in art:
             strategy = "Long"
-        elif 'strategyShort-' in art or 'title="Short"' in art:
+        elif 'title="Short"' in art or 'strategyShort-' in art:
             strategy = "Short"
             
-        symbol_match = re.search(r'title="([^"]+)"\s+data-qa-id="ui-lib-card-preview-link-icon"', art)
+        # Symbol
         symbol = ""
-        if symbol_match:
-            symbol = symbol_match.group(1).strip()
-            if ':' in symbol:
-                symbol = symbol.split(':')[1]
+        symbol_icon_match = re.search(r'(<a\b[^>]*data-qa-id="ui-lib-card-preview-link-icon"[^>]*>)', art, re.DOTALL)
+        if symbol_icon_match:
+            icon_attrs = symbol_icon_match.group(1)
+            title_attr = re.search(r'title="([^"]+)"', icon_attrs)
+            if title_attr:
+                symbol = title_attr.group(1).strip()
+                if ':' in symbol:
+                    symbol = symbol.split(':')[1]
         
         ideas.append({
             "title": title,
