@@ -1248,12 +1248,14 @@ body>*{position:relative;z-index:1}
       <span class="sett-row-lbl">🔄 অটো রিলোড (Auto Reload)</span>
       <select class="sett-inp" id="settAutoReload" style="width:110px;padding:4px;background:var(--bg3);border:.5px solid var(--bd2);color:var(--t)">
         <option value="off">Off</option>
+        <option value="1m">1 Min</option>
+        <option value="2m">2 Min</option>
+        <option value="3m">3 Min</option>
+        <option value="5m">5 Min</option>
+        <option value="10m">10 Min</option>
         <option value="15m">15 Min</option>
         <option value="30m">30 Min</option>
         <option value="1h">1 Hour</option>
-        <option value="2h">2 Hours</option>
-        <option value="6h">6 Hours</option>
-        <option value="12h">12 Hours</option>
       </select>
     </div>
 
@@ -1344,12 +1346,14 @@ function initAutoReload(){
   if(val === 'off') return;
   
   let ms = 0;
-  if(val === '15m') ms = 15 * 60 * 1000;
+  if(val === '1m') ms = 1 * 60 * 1000;
+  else if(val === '2m') ms = 2 * 60 * 1000;
+  else if(val === '3m') ms = 3 * 60 * 1000;
+  else if(val === '5m') ms = 5 * 60 * 1000;
+  else if(val === '10m') ms = 10 * 60 * 1000;
+  else if(val === '15m') ms = 15 * 60 * 1000;
   else if(val === '30m') ms = 30 * 60 * 1000;
   else if(val === '1h') ms = 60 * 60 * 1000;
-  else if(val === '2h') ms = 2 * 60 * 60 * 1000;
-  else if(val === '6h') ms = 6 * 60 * 60 * 1000;
-  else if(val === '12h') ms = 12 * 60 * 60 * 1000;
   
   if(ms > 0){
     autoReloadTimer = setInterval(() => {
