@@ -1221,11 +1221,38 @@ body>*{position:relative;z-index:1}
       </div>
     </div>
 
-    <div class="sett-row" style="display:flex;align-items:center;justify-content:space-between">
+    <div class="sett-row" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
       <span class="sett-row-lbl">🔔 অডিও অ্যালার্ট (TTS)</span>
       <div style="display:flex;align-items:center;gap:10px">
         <button type="button" class="btn btnsm" style="background:var(--bg3);color:var(--t2);border:.5px solid var(--bd2);padding:4px 8px;font-size:10px;border-radius:6px;cursor:pointer;font-weight:700" onclick="testAudioAlert(event)">🔊 টেস্ট</button>
         <input class="sett-check" id="settAudioAlerts" type="checkbox">
+      </div>
+    </div>
+
+    <div class="sett-row" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <span class="sett-row-lbl">🔄 অটো রিলোড (Auto Reload)</span>
+      <select class="sett-inp" id="settAutoReload" style="width:110px;padding:4px;background:var(--bg3);border:.5px solid var(--bd2);color:var(--t)">
+        <option value="off">Off</option>
+        <option value="15m">15 Min</option>
+        <option value="30m">30 Min</option>
+        <option value="1h">1 Hour</option>
+        <option value="2h">2 Hours</option>
+        <option value="6h">6 Hours</option>
+        <option value="12h">12 Hours</option>
+      </select>
+    </div>
+
+    <div class="sett-row" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <span class="sett-row-lbl">🛡️ হেজ অ্যালার্ম (Hedge Alarm)</span>
+      <div style="display:flex;align-items:center;gap:10px">
+        <select class="sett-inp" id="settHedgeAlarmThreshold" style="width:65px;padding:4px;background:var(--bg3);border:.5px solid var(--bd2);color:var(--t)">
+          <option value="70">70%</option>
+          <option value="75">75%</option>
+          <option value="80">80%</option>
+          <option value="85">85%</option>
+          <option value="90">90%</option>
+        </select>
+        <input class="sett-check" id="settHedgeAlarm" type="checkbox">
       </div>
     </div>
     
@@ -1273,8 +1300,51 @@ try{const j=localStorage.getItem('ltc_j_v7');if(j)journal=JSON.parse(j);}catch(e
 try{const a=localStorage.getItem('ltc_alerts_v7');if(a)priceAlerts=JSON.parse(a);}catch(e){}
 
 // ─── SETTINGS MANAGEMENT ───
-let settings={anthropicKey:'',cryptocompareKey:'',tgToken:'',tgChatId:'',audioAlerts:false,binanceKey:'',binanceSecret:'',bybitKey:'',bybitSecret:''};
-try{const s=localStorage.getItem('ltc_settings_v7');if(s)settings=JSON.parse(s);}catch(e){}
+let settings={
+  anthropicKey:'',
+  cryptocompareKey:'',
+  tgToken:'',
+  tgChatId:'',
+  audioAlerts:false,
+  binanceKey:'',
+  binanceSecret:'',
+  bybitKey:'',
+  bybitSecret:'',
+  autoReload:'off',
+  hedgeAlarm:true,
+  hedgeAlarmThreshold:80
+};
+try{
+  const s=localStorage.getItem('ltc_settings_v7');
+  if(s) {
+    const parsed = JSON.parse(s);
+    settings = {...settings, ...parsed};
+  }
+}catch(e){}
+
+let autoReloadTimer = null;
+function initAutoReload(){
+  if(autoReloadTimer) clearInterval(autoReloadTimer);
+  const val = settings.autoReload || 'off';
+  if(val === 'off') return;
+  
+  let ms = 0;
+  if(val === '15m') ms = 15 * 60 * 1000;
+  else if(val === '30m') ms = 30 * 60 * 1000;
+  else if(val === '1h') ms = 60 * 60 * 1000;
+  else if(val === '2h') ms = 2 * 60 * 60 * 1000;
+  else if(val === '6h') ms = 6 * 60 * 60 * 1000;
+  else if(val === '12h') ms = 12 * 60 * 60 * 1000;
+  
+  if(ms > 0){
+    autoReloadTimer = setInterval(() => {
+      showToast('🔄 অটো রিলোড সক্রিয়: পেজ রিলোড হচ্ছে...', 'above');
+      setTimeout(() => {
+        location.reload();
+      }, 2000);
+    }, ms);
+  }
+}
 
 function toggleSettings(show){
   const m=document.getElementById('settModal');
@@ -1290,6 +1360,9 @@ function toggleSettings(show){
     document.getElementById('settBinanceSecret').value=settings.binanceSecret||'';
     document.getElementById('settBybitKey').value=settings.bybitKey||'';
     document.getElementById('settBybitSecret').value=settings.bybitSecret||'';
+    document.getElementById('settAutoReload').value=settings.autoReload||'off';
+    document.getElementById('settHedgeAlarm').checked=settings.hedgeAlarm!==false;
+    document.getElementById('settHedgeAlarmThreshold').value=settings.hedgeAlarmThreshold||80;
     
     // User display
     const userEl = document.getElementById('sett-username-display');
@@ -1310,9 +1383,13 @@ function saveSettings(){
   settings.binanceSecret=document.getElementById('settBinanceSecret').value.trim();
   settings.bybitKey=document.getElementById('settBybitKey').value.trim();
   settings.bybitSecret=document.getElementById('settBybitSecret').value.trim();
+  settings.autoReload=document.getElementById('settAutoReload').value;
+  settings.hedgeAlarm=document.getElementById('settHedgeAlarm').checked;
+  settings.hedgeAlarmThreshold=parseInt(document.getElementById('settHedgeAlarmThreshold').value)||80;
   try{
     localStorage.setItem('ltc_settings_v7',JSON.stringify(settings));
     showToast('✅ সেটিংস সেভ করা হয়েছে!','above');
+    initAutoReload();
   }catch(e){}
   toggleSettings(false);
 }
@@ -1337,10 +1414,12 @@ async function handlePasswordChange(){
   pwEl.value = '';
 }
 function handleUserLogout(){
+  sessionStorage.removeItem('ltc_user_logged_in');
   toggleSettings(false);
   showAuthOverlay();
 }
 function showAuthOverlay(){
+  if(sessionStorage.getItem('ltc_user_logged_in') === 'true') return;
   if(document.getElementById('terminal-auth-screen')) return;
   
   const auth = document.createElement('div');
@@ -1447,6 +1526,7 @@ async function submitRegistration(){
   const hash = await getHashSHA256(p);
   localStorage.setItem('ltc_user_name', u);
   localStorage.setItem('ltc_user_pwd_hash', hash);
+  sessionStorage.setItem('ltc_user_logged_in', 'true');
   
   showToast('✅ ইউজার অ্যাকাউন্ট সফলভাবে তৈরি হয়েছে!','above');
   
@@ -1477,6 +1557,7 @@ async function submitLogin(){
   const hash = await getHashSHA256(p);
   if(hash === correctHash){
     loginAttempts = 0;
+    sessionStorage.setItem('ltc_user_logged_in', 'true');
     try {
       const actx = new (window.AudioContext || window.webkitAudioContext)();
       const osc = actx.createOscillator();
@@ -2189,39 +2270,45 @@ function updateHedgeEfficiency(px,sr,lm,sm){
   s('heff-fund',frScore+'/30',frScore>=20?'var(--g)':frScore>=10?'var(--a)':'var(--r)');
   s('heff-sr',srScoreVal+'/30',srScoreVal>=20?'var(--g)':srScoreVal>=12?'var(--a)':'var(--r)');
 
-  // ─── PERFECT SCORE SOUND ALERT ───
-  // Alert tiers: 80+ = Perfect (green glow), 70+ = Good
-  if(score>=80 && _lastHeffAlertScore<80){
-    _lastHeffAlertScore=80;
-    // Play triumphant sound
-    playPerfectHedgeSound();
-    // Show toast
-    showToast('🏆 হেজ এফিশিয়েন্সি PERFECT! স্কোর: '+score+'% — এখনই ট্রেড করুন!','above');
-    // Voice alert
-    try{
-      const u=new SpeechSynthesisUtterance('Perfect hedge score! '+score+' percent. Ideal entry condition.');
-      u.rate=1.0;u.pitch=1.2;
-      window.speechSynthesis.speak(u);
-    }catch(e){}
-    // Glow + animate the heff panel with CSS classes
-    const heff=document.querySelector('.heff');
-    const scoreEl=document.getElementById('heff-score-val');
-    if(heff){
-      heff.classList.add('heff-perfect');
-      setTimeout(()=>{heff.classList.remove('heff-perfect');},10000);
-    }
-    if(scoreEl){
-      scoreEl.classList.add('heff-score-perfect');
-      setTimeout(()=>{scoreEl.classList.remove('heff-score-perfect');},2000);
-    }
+  // ─── CUSTOM HEDGE ALARM ───
+  if(settings.hedgeAlarm !== false){
+    const threshold = settings.hedgeAlarmThreshold || 80;
+    if(score >= threshold && _lastHeffAlertScore < threshold){
+      _lastHeffAlertScore = threshold;
+      
+      // Play triumphant sound
+      playPerfectHedgeSound();
+      
+      // Show toast
+      showToast(`🏆 হেজ এফিশিয়েন্সি লক্ষ্যমাত্রা অর্জন! স্কোর: ${score}% (Threshold: ${threshold}%) — এখনই ট্রেড করুন!`, 'above');
+      
+      // Voice alert (TTS)
+      if(settings.audioAlerts){
+        try{
+          const u=new SpeechSynthesisUtterance(`Hedge efficiency target reached. Current score is ${score} percent.`);
+          u.rate=1.0; u.pitch=1.2;
+          window.speechSynthesis.speak(u);
+        }catch(e){}
+      }
+      
+      // Telegram Alert
+      sendTelegramAlert(`🏆 [HEDGE ALARM ACHIEVED]\nSymbol: ${currentSymbol}\nHedge Efficiency: ${score}% (Threshold: ${threshold}%)\nPrice: $${px.toFixed(2)}\nRSI: ${rsiVal ? rsiVal.toFixed(1) : 'N/A'}\nFunding Rate: ${fundingRate.toFixed(4)}%\nSize Score: ${sizeScore}/40\nFunding Score: ${frScore}/30\nS/R Score: ${srScoreVal}/30`);
 
-  } else if(score>=70 && score<80 && _lastHeffAlertScore<70){
-    _lastHeffAlertScore=70;
-    playBeepSound('double');
-    showToast('✅ হেজ স্কোর ভালো: '+score+'% — ট্রেড এন্ট্রির জন্য উপযুক্ত','above');
-  } else if(score<60){
-    // Reset so next perfect alert can fire again
-    _lastHeffAlertScore=0;
+      // Glow + animate the heff panel with CSS classes
+      const heff=document.querySelector('.heff');
+      const scoreEl=document.getElementById('heff-score-val');
+      if(heff){
+        heff.classList.add('heff-perfect');
+        setTimeout(()=>{heff.classList.remove('heff-perfect');},10000);
+      }
+      if(scoreEl){
+        scoreEl.classList.add('heff-score-perfect');
+        setTimeout(()=>{scoreEl.classList.remove('heff-score-perfect');},2000);
+      }
+    } else if(score < (threshold - 10)){
+      // Reset so next perfect alert can fire again
+      _lastHeffAlertScore=0;
+    }
   }
 }
 
@@ -3809,6 +3896,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   loadAll();
   renderJournal();
   renderAlerts();
+  initAutoReload();
   setInterval(tick,1000);tick();
   setInterval(periodicRefresh,15000);
   setInterval(loadAll,300000);
