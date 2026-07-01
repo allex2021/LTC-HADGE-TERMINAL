@@ -32,8 +32,21 @@ body{background:var(--bg);color:var(--t);font-family:var(--sans);font-size:13px;
 body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(ellipse 80% 50% at 50% -20%,rgba(0,245,168,.06),transparent),radial-gradient(ellipse 50% 80% at 80% 50%,rgba(61,142,255,.04),transparent),linear-gradient(rgba(22,32,48,.6) 1px,transparent 1px),linear-gradient(90deg,rgba(22,32,48,.6) 1px,transparent 1px);background-size:100% 100%,100% 100%,32px 32px,32px 32px;pointer-events:none;z-index:0}
 body>*{position:relative;z-index:1}
 
-/* LAYOUT */
-.wrap{max-width:820px;margin:0 auto;padding:8px 10px}
+/* LAYOUT & CYBER2 THEME */
+.wrap{max-width:1400px;margin:0 auto;padding:8px 10px}
+.main-grid{display:flex;flex-direction:column;gap:12px}
+@media(min-width:992px){
+  .main-grid{display:grid;grid-template-columns:1.4fr 1fr;gap:16px;align-items:start}
+}
+.panel-left, .panel-right{display:flex;flex-direction:column;gap:10px}
+
+/* Gold/Yellow Theme overrides for Cyber2 branding */
+.logo em { color: var(--a) !important; }
+.logo .v7 { color: var(--a) !important; }
+.sett-btn { border-color: var(--a) !important; color: var(--a) !important; }
+.sett-btn:hover { background: var(--ad) !important; }
+.btn-gold { background: linear-gradient(135deg, var(--a), #cc9900) !important; color: var(--bg) !important; border: none !important; }
+.j-modal-inner { border: 1.5px solid var(--a) !important; box-shadow: 0 0 25px rgba(255,204,0,0.15) !important; }
 
 /* ANIMATIONS */
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
@@ -489,6 +502,58 @@ body>*{position:relative;z-index:1}
 </style>
 </head>
 <body>
+
+<!-- ─── CYBER2 SPLASH SCREEN ─── -->
+<div id="splash-screen" style="position:fixed;inset:0;background:#04080c;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity 0.6s ease;font-family:var(--sans)">
+  <div style="position:relative;width:200px;height:200px;display:flex;align-items:center;justify-content:center">
+    <!-- Outer loading ring -->
+    <div style="position:absolute;width:150px;height:150px;border:3px dashed var(--a);border-radius:50%;animation:spin 15s linear infinite;box-shadow:0 0 15px rgba(255,204,0,0.1)"></div>
+    <div style="position:absolute;width:130px;height:130px;border:2px dotted var(--a);border-radius:50%;animation:spin 8s linear infinite reverse;opacity:0.6"></div>
+    
+    <!-- Logo SVG (Cyber2 Style) -->
+    <svg width="80" height="80" viewBox="0 0 100 100" style="z-index:10;filter:drop-shadow(0 0 8px rgba(255,204,0,0.6))">
+      <polygon points="50,5 95,28 95,72 50,95 5,72 5,28" fill="none" stroke="var(--a)" stroke-width="4"/>
+      <text x="36" y="68" font-family="var(--display)" font-size="52" font-weight="900" fill="var(--a)">2</text>
+      <circle cx="50" cy="50" r="3" fill="var(--a)"/>
+    </svg>
+  </div>
+  <div style="margin-top:20px;text-align:center">
+    <div style="font-family:var(--display);font-size:18px;font-weight:900;color:var(--t);letter-spacing:4px;text-transform:uppercase">Loading the Desk</div>
+    <div style="font-family:var(--mono);font-size:10px;color:var(--a);margin-top:8px;letter-spacing:2px">CYBER2 TRADING SYSTEMS v7.0</div>
+    <div style="margin-top:24px;width:120px;height:3px;background:var(--bg3);border-radius:2px;overflow:hidden;margin-left:auto;margin-right:auto">
+      <div style="width:30%;height:100%;background:var(--a);border-radius:2px;animation:shimmer 1.5s infinite"></div>
+    </div>
+  </div>
+  <div style="position:absolute;bottom:20px;font-family:var(--mono);font-size:9px;color:var(--t3)">v0.0.19 · BUILD 2026</div>
+</div>
+
+<!-- ─── CYBER2 PRO LICENSE LOCK MODAL ─── -->
+<div id="license-lock" style="position:fixed;inset:0;background:rgba(4,8,12,0.92);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);z-index:9990;display:none;align-items:center;justify-content:center;padding:20px;font-family:var(--sans)">
+  <div style="background:var(--bg2);border:1px solid var(--a);box-shadow:0 0 30px rgba(255,204,0,0.15);border-radius:16px;max-width:400px;width:100%;padding:24px;text-align:center;animation:slideDown 0.4s ease">
+    
+    <div style="width:70px;height:70px;background:rgba(255,204,0,0.1);border:1px solid var(--a);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px">
+      <span style="font-size:32px">👑</span>
+    </div>
+    
+    <h3 style="font-family:var(--display);color:var(--a);font-size:18px;letter-spacing:1px;margin-bottom:8px">YOU ARE NOT A PRO MEMBER</h3>
+    <p style="color:var(--t2);font-size:12px;line-height:1.6;margin-bottom:20px">This terminal features automated DCA strategies, whale flow trackers, and premium Claude AI calculations. Access is restricted to paid Cyber2 members.</p>
+    
+    <!-- Activation key inputs -->
+    <div id="license-input-area" style="display:none;margin-bottom:16px;animation:fadeIn 0.3s">
+      <input type="text" id="license-key-field" placeholder="ENTER LICENSE KEY (e.g. CYBER2-XXXX)" style="width:100%;background:var(--bg3);border:1px solid var(--bd2);color:var(--t);padding:10px 14px;border-radius:8px;font-family:var(--mono);font-size:11px;text-align:center;outline:none;margin-bottom:10px;transition:border-color 0.2s">
+      <button onclick="validateLicenseKey()" class="btn" style="width:100%;background:linear-gradient(135deg, var(--a), #cc9900);color:var(--bg);font-weight:700;font-size:11px;padding:10px 16px;border-radius:8px;border:none;cursor:pointer">ACTIVATE TERMINAL</button>
+    </div>
+    
+    <!-- Action buttons -->
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <button onclick="showLicenseInput()" class="btn" style="background:var(--bg3);border:1px solid var(--a);color:var(--a);font-weight:700;font-size:11px;padding:10px 16px;border-radius:8px;cursor:pointer">ACTIVATE LICENSE KEY</button>
+      <a href="https://t.me/cyber2_admin_placeholder" target="_blank" class="btn" style="background:linear-gradient(135deg, var(--a), #cc9900);color:var(--bg);font-weight:700;font-size:11px;padding:10px 16px;border-radius:8px;text-decoration:none;display:block">SUBSCRIBE NOW</a>
+    </div>
+    
+    <div style="margin-top:16px;font-size:9px;color:var(--t3);font-family:var(--mono)">SUPPORT: CONTACT CYBER2 ON TELEGRAM</div>
+  </div>
+</div>
+
 <div class="wrap">
 
 <!-- ─── HEADER ─── -->
@@ -4374,6 +4439,42 @@ async function periodicRefresh(){
   safe(updateApiBalance);
 }
 
+// --- CYBER2 LICENSE GATE ENGINE ---
+function checkLicense() {
+  const license = localStorage.getItem('cyber2_license');
+  const lockScreen = document.getElementById('license-lock');
+  
+  if (license === 'CYBER2-PRO-2026' || license === 'CYBER2-BETA-FREE') {
+    if (lockScreen) lockScreen.style.display = 'none';
+    return true;
+  } else {
+    if (lockScreen) lockScreen.style.display = 'flex';
+    return false;
+  }
+}
+
+function showLicenseInput() {
+  const area = document.getElementById('license-input-area');
+  if (area) area.style.display = 'block';
+}
+
+function validateLicenseKey() {
+  const keyField = document.getElementById('license-key-field');
+  if (!keyField) return;
+  const key = keyField.value.trim().toUpperCase();
+  
+  if (key === 'CYBER2-PRO-2026' || key === 'CYBER2-BETA-FREE') {
+    localStorage.setItem('cyber2_license', key);
+    showToast('🔑 Activation successful! Welcome to Cyber2 Pro.', 'above');
+    setTimeout(() => {
+      location.reload();
+    }, 1000);
+  } else {
+    keyField.style.borderColor = 'var(--r)';
+    showToast('❌ Invalid License Key. Try again.', 'above');
+  }
+}
+
 // ─── INIT ───
 document.addEventListener('DOMContentLoaded',()=>{
   showAuthOverlay();
@@ -4388,6 +4489,16 @@ document.addEventListener('DOMContentLoaded',()=>{
   setInterval(loadAll,300000);
   setInterval(getFunding,28800000);
   setInterval(getFundingHistory,3600000);
+  
+  // Cyber2 Splash screen fadeout and License check sequence
+  setTimeout(() => {
+    const splash = document.getElementById('splash-screen');
+    if (splash) {
+      splash.style.opacity = '0';
+      setTimeout(() => splash.style.display = 'none', 600);
+    }
+    checkLicense();
+  }, 2500);
 });
 </script>
 </body>
