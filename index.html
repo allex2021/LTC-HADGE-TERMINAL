@@ -1127,11 +1127,76 @@ body>*{position:relative;z-index:1}
 
   <!-- DCA SUB-TAB -->
   <div class="subsec on" id="sub-dca">
-    <div style="background:var(--bg2);border:.5px solid var(--bd2);border-radius:var(--r2);padding:14px;margin-bottom:10px">
-      <div class="sub">DCA গাইড · Strategy Guide</div>
-      <div class="ds"><div class="dn dng">১</div><div><div class="dtitle" style="color:var(--g)">লং TP1 হিট → শর্টে DCA</div><div class="ddesc">লং ৫০% close করুন → মুনাফা নিন → শর্টে DCA করুন</div></div></div>
-      <div class="ds"><div class="dn dnr">২</div><div><div class="dtitle" style="color:var(--r)">শর্ট TP1 হিট → লংয়ে DCA</div><div class="ddesc">শর্ট ৫০% close করুন → মুনাফা নিন → লংয়ে DCA করুন</div></div></div>
-      <div class="ds"><div class="dn dna">!</div><div><div class="dtitle" style="color:var(--a)">DCA মাত্র একবার</div><div class="ddesc">LIQ Long: <span style="font-family:var(--mono);color:var(--t)" id="dliq-l">—</span> · Short: <span style="font-family:var(--mono);color:var(--t)" id="dliq-s">—</span></div></div></div>
+    <div style="background:var(--bg2);border:1.5px solid var(--bd2);border-radius:var(--r2);padding:16px;margin-bottom:10px;font-family:var(--sans)">
+      <div class="sub" style="border-bottom:.5px solid var(--bd);padding-bottom:8px;margin-bottom:12px;font-family:var(--display);color:var(--a)">CYBER2 · SWING HEDGE SYSTEM RULES</div>
+      
+      <!-- STEP 1: ENTRY & TARGETS -->
+      <div style="display:flex;gap:12px;margin-bottom:14px">
+        <div style="width:24px;height:24px;background:rgba(255,204,0,0.1);border:1px solid var(--a);color:var(--a);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;flex-shrink:0">১</div>
+        <div>
+          <div style="font-size:12px;font-weight:700;color:var(--t)">পজিশন ওপেন ও সুইং মোড (Setup & Entry)</div>
+          <div style="font-size:11px;color:var(--t2);line-height:1.6;margin-top:4px">
+            * <b>Trade</b> ট্যাবে গিয়ে আপনার ক্যাপিটাল প্রিসেট সিলেক্ট করুন (যেমন: $৫০০ টায়ার)। এটি অটোমেটিক <b>3.0% Swing Mode</b> অন করে দেবে।
+            * একই প্রাইসে <b>Long</b> এবং <b>Short</b> পজিশন ১০x/২০x লিভারেজে একসাথে ওপেন করুন।
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 2: PROFIT BOOKING (TP1) -->
+      <div style="display:flex;gap:12px;margin-bottom:14px">
+        <div style="width:24px;height:24px;background:rgba(0,245,168,0.1);border:1px solid var(--g);color:var(--g);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;flex-shrink:0">২</div>
+        <div>
+          <div style="font-size:12px;font-weight:700;color:var(--g)">প্রথম প্রফিট বুকিং (TP1: 50% Profit Book)</div>
+          <div style="font-size:11px;color:var(--t2);line-height:1.6;margin-top:4px">
+            * প্রাইস যেকোনো এক দিকে <b>৩.০% মুভ</b> করলেই সেই দিকের পজিশন (যেমন: Long) <b>TP1 (50% ক্লোজ)</b> হিট করবে।
+            * এতে আপনার অ্যাকাউন্টে এককালীন <b>$২০+ নিশ্চিত প্রফিট</b> বুক হয়ে ব্যালেন্সে জমা হবে।
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 3: SMART DCA ON DRAWDOWN LEG -->
+      <div style="display:flex;gap:12px;margin-bottom:14px">
+        <div style="width:24px;height:24px;background:rgba(255,45,85,0.1);border:1px solid var(--r);color:var(--r);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;flex-shrink:0">৩</div>
+        <div>
+          <div style="font-size:12px;font-weight:700;color:var(--r)">ড্র-ডাউন পজিশনে DCA রুলস (DCA execution)</div>
+          <div style="font-size:11px;color:var(--t2);line-height:1.6;margin-top:4px">
+            * লং প্রফিট বুক হওয়ার পর শর্ট পজিশনটি মাইনাসে থাকবে। ঘাবড়ানোর কিছু নেই!
+            * টার্মিনালের চার্টে দেখানো <b>Daily Resistance (রেজিস্ট্যান্স জোন)</b> বা ৩% পাম্পের চুড়ায় শর্ট পজিশনে <b>১.৫ গুণ মার্জিন দিয়ে DCA করুন</b>। 
+            * এতে শর্টের এন্ট্রি প্রাইস অনেক উপরে (মার্কেটের খুব কাছাকাছি) চলে আসবে।
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 4: SWING CYCLE COMPLETION -->
+      <div style="display:flex;gap:12px;margin-bottom:14px">
+        <div style="width:24px;height:24px;background:rgba(0,212,255,0.1);border:1px solid var(--c);color:var(--c);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;flex-shrink:0">৪</div>
+        <div>
+          <div style="font-size:12px;font-weight:700;color:var(--c)">সাইকেল ক্লোজ ও নেট লাভ (Cycle Exit)</div>
+          <div style="font-size:11px;color:var(--t2);line-height:1.6;margin-top:4px">
+            * ৩% পাম্প বা ডাম্পের পর মার্কেট অবশ্যই <b>১.০% - ১.৫% রিট্রেস (pullback)</b> করে।
+            * পুলব্যাক হওয়া মাত্রই আপনার DCA করা শর্ট পজিশনটি জিরো লসে (Breakeven) অথবা অল্প লাভে ক্লোজ হবে। 
+            * **পুরো সাইকেল কমপ্লিট!** আপনার পকেটে নেট প্রফিট থাকবে **$২০+**।
+          </div>
+        </div>
+      </div>
+
+      <!-- CRITICAL RISK RULES -->
+      <div style="background:var(--bg3);border-radius:8px;padding:12px;border:.5px solid var(--bd2);margin-top:12px">
+        <div style="font-size:10px;font-weight:700;color:var(--r);text-transform:uppercase;margin-bottom:8px;font-family:var(--mono)">⚠️ রিস্ক ম্যানেজমেন্টের ৫টি গোল্ডেন রুলস:</div>
+        <div style="font-size:10px;color:var(--t2);line-height:1.6;display:flex;flex-direction:column;gap:6px">
+          <div>১. <b>ওয়ালেট রিজার্ভ:</b> ক্যাপিটালের মাত্র ১২% দিয়ে ইনিশিয়াল এন্ট্রি নিবেন। বাকি ৮৮% ব্যালেন্স ওয়ালেটে DCA করার জন্য ব্যাকআপ থাকবে।</div>
+          <div>২. <b>৪৮ ঘণ্টা ডেডলাইন:</b> কোনো পজিশন ৪৮ ঘণ্টার বেশি হোল্ড করবেন না। ট্রেন্ড চেঞ্জ হলে প্রফিট লেগের লাভ দিয়ে লস লেগ কেটে সমান-সমান অবস্থায় বের হয়ে যাবেন।</div>
+          <div>৩. <b>নিউজ টাইম এভয়েড:</b> বড় নিউজের (CPI, FOMC) ১ ঘণ্টা আগে ও পরে অর্ডার প্লেস করবেন না।</div>
+          <div>৪. <b>জরুরি এক্সিট (Emergency Exit):</b> মার্কেট লিকুইডেশনের ১.০% কাছাকাছি চলে গেলে ব্লিঙ্কিং এলার্ট দিবে, সাথে সাথে লস বুক করে ম্যানুয়ালি পজিশন ক্লোজ করে দিন।</div>
+          <div>৫. <b>টেলিগ্রাম সিঙ্ক:</b> এলার্ট সাউন্ড এবং টেলিগ্রাম বট কানেক্ট রাখুন যাতে পজিশন ক্লোজ বা DCA সিগন্যাল সাথে সাথে পান।</div>
+        </div>
+      </div>
+      
+      <!-- LIQ display (Required by JS) -->
+      <div style="margin-top:10px;font-size:9px;color:var(--t3);text-align:center;font-family:var(--mono)">
+        Live safety thresholds: Long Liq: <span id="dliq-l" style="color:var(--t)">—</span> · Short Liq: <span id="dliq-s" style="color:var(--t)">—</span>
+      </div>
+
     </div>
     <div class="dca-v5">
       <div class="sub">🧮 Smart DCA Calculator</div>
