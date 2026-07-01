@@ -131,96 +131,77 @@ class ProxyHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             super().do_DELETE()
 
 def get_tradingview_ideas():
+    import urllib.request
+    import xml.etree.ElementTree as ET
     import re
-    url = "https://www.tradingview.com/markets/cryptocurrencies/ideas/?sort=recent"
+    
+    url = "https://cointelegraph.com/rss"
     req = urllib.request.Request(
         url,
         headers={
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Accept-Language': 'en-US,en;q=0.9'
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
         }
     )
-    try:
-        with urllib.request.urlopen(req, timeout=10) as response:
-            html = response.read().decode('utf-8')
-    except Exception as e:
-        return {"ideas": [], "error": str(e)}
-
-    articles = re.findall(r'<article\b[^>]*>(.*?)</article>', html, re.DOTALL)
     
     ideas = []
-    for art in articles:
-        # Title and Link (order-independent)
-        title_tag_match = re.search(r'(<a\b[^>]*data-qa-id="ui-lib-card-link-title"[^>]*>)(.*?)</a>', art, re.DOTALL)
-        if not title_tag_match:
-            continue
-        tag_attrs = title_tag_match.group(1)
-        title_html = title_tag_match.group(2)
+    try:
+        with urllib.request.urlopen(req, timeout=10) as response:
+            xml_data = response.read()
+            # Parse XML
+            root = ET.fromstring(xml_data)
+            items = root.findall('.//item')
+            
+            for item in items:
+                title = item.find('title').text if item.find('title') is not None else ""
+                link = item.find('link').text if item.find('link') is not None else ""
+                desc_raw = item.find('description').text if item.find('description') is not None else ""
+                pub_date = item.find('pubDate').text if item.find('pubDate') is not None else ""
+                
+                # Extract image URL from description HTML
+                img_url = ""
+                img_match = re.search(r'<img[^>]*src="([^"]+)"', desc_raw)
+                if img_match:
+                    img_url = img_match.group(1)
+                
+                # Clean HTML tags from description text
+                desc_clean = re.sub(r'<[^>]+>', '', desc_raw).strip()
+                desc_clean = re.sub(r'\s+', ' ', desc_clean)
+                if len(desc_clean) > 200:
+                    desc_clean = desc_clean[:200] + "..."
+                
+                # Determine strategy from keywords
+                title_lower = title.lower()
+                desc_lower = desc_clean.lower()
+                strategy = "Neutral"
+                if any(k in title_lower or k in desc_lower for k in ['bullish', 'bounce', 'rise', 'target', 'buy', 'long', 'rally', 'recovery']):
+                    strategy = "Long"
+                elif any(k in title_lower or k in desc_lower for k in ['bearish', 'drop', 'fall', 'crash', 'sell', 'short', 'dump', 'dip']):
+                    strategy = "Short"
+                
+                # Determine Symbol
+                symbol = "ALT"
+                if 'bitcoin' in title_lower or 'btc' in title_lower:
+                    symbol = "BTC"
+                elif 'ethereum' in title_lower or 'eth' in title_lower:
+                    symbol = "ETH"
+                elif 'solana' in title_lower or 'sol' in title_lower:
+                    symbol = "SOL"
+                elif 'litecoin' in title_lower or 'ltc' in title_lower:
+                    symbol = "LTC"
+                
+                ideas.append({
+                    "title": title,
+                    "link": link,
+                    "description": desc_clean,
+                    "image": img_url,
+                    "author": "Cointelegraph",
+                    "date": pub_date,
+                    "strategy": strategy,
+                    "symbol": symbol
+                })
+    except Exception as e:
+        return {"ideas": [], "error": str(e)}
         
-        title = re.sub(r'<[^>]+>', '', title_html).strip()
-        href_match = re.search(r'href="([^"]+)"', tag_attrs)
-        link = href_match.group(1) if href_match else ""
-        if not link.startswith('http'):
-            link = 'https://www.tradingview.com' + link
-        
-        # Description / Paragraph (order-independent)
-        para_tag_match = re.search(r'<a\b[^>]*data-qa-id="ui-lib-card-link-paragraph"[^>]*>(.*?)</a>', art, re.DOTALL)
-        para = ""
-        if para_tag_match:
-            para_html = para_tag_match.group(1)
-            para = re.sub(r'<[^>]+>', '', para_html).strip()
-            para = re.sub(r'\s+', ' ', para)
-            
-        # Image (extract actual chart image from the image link block)
-        img_url = ""
-        img_container = re.search(r'data-qa-id="ui-lib-card-link-image"[^>]*>(.*?)</a>', art, re.DOTALL)
-        if img_container:
-            img_match = re.search(r'<img[^>]*src="([^"]+)"', img_container.group(1))
-            if img_match:
-                img_url = img_match.group(1)
-        if not img_url:
-            # Fallback to any img tag if link image not found
-            img_match = re.search(r'<img[^>]*src="([^"]+)"', art)
-            img_url = img_match.group(1) if img_match else ""
-        if img_url.startswith('//'):
-            img_url = 'https:' + img_url
-            
-        # Author / User
-        author_match = re.search(r'/u/([^/]+)/', art)
-        author = author_match.group(1).strip() if author_match else "Unknown"
-            
-        # Date
-        time_match = re.search(r'dateTime="([^"]+)"', art)
-        pub_date = time_match.group(1) if time_match else ""
-            
-        # Strategy
-        strategy = "Neutral"
-        if 'title="Long"' in art or 'strategyLong-' in art:
-            strategy = "Long"
-        elif 'title="Short"' in art or 'strategyShort-' in art:
-            strategy = "Short"
-            
-        # Symbol
-        symbol = ""
-        symbol_icon_match = re.search(r'(<a\b[^>]*data-qa-id="ui-lib-card-preview-link-icon"[^>]*>)', art, re.DOTALL)
-        if symbol_icon_match:
-            icon_attrs = symbol_icon_match.group(1)
-            title_attr = re.search(r'title="([^"]+)"', icon_attrs)
-            if title_attr:
-                symbol = title_attr.group(1).strip()
-                if ':' in symbol:
-                    symbol = symbol.split(':')[1]
-        
-        ideas.append({
-            "title": title,
-            "link": link,
-            "description": para,
-            "image": img_url,
-            "author": author,
-            "date": pub_date,
-            "strategy": strategy,
-            "symbol": symbol
-        })
     return {"ideas": ideas}
 
 def make_bybit_request(path, query_params, api_key, api_secret):
