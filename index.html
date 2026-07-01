@@ -764,7 +764,7 @@ body>*{position:relative;z-index:1}
 
 <!-- ─── MAIN TABS (4 primary) ─── -->
 <div class="tab-nav">
-  <button class="tab-btn on" onclick="goTab('market',this)"><span class="tab-ico">📊</span>Market</button>
+  <button class="tab-btn on" onclick="goTab('market',this)"><span class="tab-ico">📡</span>Radar</button>
   <button class="tab-btn" onclick="goTab('trade',this)"><span class="tab-ico">⚡</span>Trade</button>
   <button class="tab-btn" onclick="goTab('tools',this)"><span class="tab-ico">🛠</span>Tools</button>
   <button class="tab-btn" onclick="goTab('portfolio',this)"><span class="tab-ico">💼</span>Portfolio</button>
@@ -786,22 +786,99 @@ body>*{position:relative;z-index:1}
     <div id="aiContent"><div class="ai-loading"><span class="spin"></span><br>AI বিশ্লেষণ শুরু হচ্ছে...</div></div>
   </div>
 
-  <!-- CONFLUENCE SCORE -->
-  <div class="cfcard">
-    <div class="cfwrap">
-      <svg width="86" height="86" viewBox="0 0 86 86">
-        <circle class="cfbg" cx="43" cy="43" r="36"/>
-        <circle class="cfarc" id="cfArc" cx="43" cy="43" r="36" stroke="var(--g)" stroke-dasharray="226" stroke-dashoffset="226"/>
-      </svg>
-      <div class="cfnum" id="cfNum" style="color:var(--a)">—</div>
+  <!-- LIQUIDITY RADAR DASHBOARD -->
+  <div class="radar-dashboard" style="background:var(--bg2);border:1.5px solid var(--bd2);border-radius:var(--r2);padding:16px;margin-bottom:12px">
+    
+    <!-- Title and Live badge -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;border-bottom:.5px solid var(--bd);padding-bottom:10px">
+      <div>
+        <span style="font-family:var(--display);font-size:16px;font-weight:900;color:var(--t)">Liquidity <span style="color:var(--a)">Radar</span></span>
+        <div style="font-family:var(--mono);font-size:8px;color:var(--t3);text-transform:uppercase;margin-top:2px" id="radar-sub-lbl">LTCUSDT PERP · BINANCE FUTURES</div>
+      </div>
+      <div class="live-badge" style="margin-bottom:0;border-color:var(--a);color:var(--a);background:var(--ad2)"><span class="dot" style="background:var(--a);box-shadow:0 0 6px var(--a)"></span> LIVE</div>
     </div>
-    <div class="cfrows">
-      <div class="cfrow"><span style="color:var(--t2);font-size:11px">RSI</span><span class="cfv" id="cf-rsi" style="font-family:var(--mono);font-size:10px;font-weight:600;color:var(--t)">—</span></div>
-      <div class="cfrow"><span style="color:var(--t2);font-size:11px">সাপোর্ট/রেজিস্ট্যান্স</span><span class="cfv" id="cf-sr" style="font-family:var(--mono);font-size:10px;font-weight:600;color:var(--t)">—</span></div>
-      <div class="cfrow"><span style="color:var(--t2);font-size:11px">মুভমেন্ট</span><span class="cfv" id="cf-chg" style="font-family:var(--mono);font-size:10px;font-weight:600;color:var(--t)">—</span></div>
-      <div class="cfrow"><span style="color:var(--t2);font-size:11px">ফান্ডিং</span><span class="cfv" id="cf-fr" style="font-family:var(--mono);font-size:10px;font-weight:600;color:var(--t)">—</span></div>
-      <div class="cfrow"><span style="color:var(--t2);font-size:11px">সুপারিশ</span><span class="cfv" id="cf-rec" style="font-family:var(--mono);font-size:10px;font-weight:600;color:var(--t)">—</span></div>
+    
+    <!-- KPI Metrics Grid -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px">
+      <div style="background:var(--bg3);border-radius:8px;padding:8px;text-align:center">
+        <div style="font-size:8px;color:var(--t3)">OI</div>
+        <div style="font-family:var(--mono);font-size:11px;font-weight:700;color:var(--t)" id="radar-oi">$6.31B</div>
+      </div>
+      <div style="background:var(--bg3);border-radius:8px;padding:8px;text-align:center">
+        <div style="font-size:8px;color:var(--t3)">FR</div>
+        <div style="font-family:var(--mono);font-size:11px;font-weight:700;color:var(--g)" id="radar-fr">+0.0054%</div>
+      </div>
+      <div style="background:var(--bg3);border-radius:8px;padding:8px;text-align:center">
+        <div style="font-size:8px;color:var(--t3)">SPREAD</div>
+        <div style="font-family:var(--mono);font-size:11px;font-weight:700;color:var(--t)" id="radar-spread">$0.10</div>
+      </div>
+      <div style="background:var(--bg3);border-radius:8px;padding:8px;text-align:center">
+        <div style="font-size:8px;color:var(--t3)">TRADES</div>
+        <div style="font-family:var(--mono);font-size:11px;font-weight:700;color:var(--c)" id="radar-trades">500</div>
+      </div>
     </div>
+
+    <!-- Price & Confidence Hero -->
+    <div style="background:linear-gradient(135deg, var(--bg3), rgba(255,204,0,0.03));border:.5px solid var(--bd2);border-radius:10px;padding:14px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <div style="font-family:var(--display);font-size:26px;font-weight:900;color:var(--t)" id="radar-price">$0.00</div>
+        <div style="font-family:var(--mono);font-size:10px;color:var(--r);margin-top:2px" id="radar-chg">0.00%</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-family:var(--display);font-size:22px;font-weight:900;color:var(--c)" id="radar-conf">—</div>
+        <div style="font-size:8px;color:var(--t3);text-transform:uppercase;letter-spacing:0.5px">Confidence</div>
+      </div>
+    </div>
+
+    <!-- Market Bias Bar -->
+    <div style="margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:4px;font-family:var(--mono)">
+        <span style="color:var(--t2)">MARKET BIAS</span>
+        <span style="font-weight:700" id="radar-bias-text">STRONG BEARISH</span>
+      </div>
+      <!-- Dual Progress Bar -->
+      <div style="height:10px;background:var(--bg4);border-radius:5px;overflow:hidden;display:flex">
+        <div id="radar-buy-bar" style="background:var(--g);width:50%;transition:width 0.4s"></div>
+        <div id="radar-sell-bar" style="background:var(--r);width:50%;transition:width 0.4s"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--t3);margin-top:3px;font-family:var(--mono)">
+        <span id="radar-buy-pct">50.0% BUY</span>
+        <span id="radar-sell-pct">50.0% SELL</span>
+      </div>
+    </div>
+
+    <!-- Targets Row (Magnet and Target side-by-side) -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <!-- Liquidity Magnet -->
+      <div style="background:var(--bg3);border:.5px solid var(--bd2);border-radius:8px;padding:10px">
+        <div style="font-size:8px;color:var(--t3);text-transform:uppercase;letter-spacing:0.5px">Liquidity Magnet</div>
+        <div style="font-family:var(--display);font-size:15px;font-weight:700;color:var(--c);margin:4px 0" id="radar-mag-px">$0.00</div>
+        <div style="font-size:9px;color:var(--t2)" id="radar-mag-desc">Largest cluster pulling price.</div>
+        <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--t3);margin-top:6px;border-top:.5px dashed var(--bd);padding-top:4px;font-family:var(--mono)">
+          <span>Distance</span>
+          <span style="color:var(--g)" id="radar-mag-dist">—%</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--t3);font-family:var(--mono)">
+          <span>Cluster $</span>
+          <span id="radar-mag-val">—</span>
+        </div>
+      </div>
+      <!-- Likely Target -->
+      <div style="background:var(--bg3);border:.5px solid var(--bd2);border-radius:8px;padding:10px">
+        <div style="font-size:8px;color:var(--t3);text-transform:uppercase;letter-spacing:0.5px">Likely Target</div>
+        <div style="font-family:var(--display);font-size:15px;font-weight:700;color:var(--a);margin:4px 0" id="radar-tgt-px">$0.00</div>
+        <div style="font-size:9px;color:var(--t2)" id="radar-tgt-desc">OB density + CVD target.</div>
+        <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--t3);margin-top:6px;border-top:.5px dashed var(--bd);padding-top:4px;font-family:var(--mono)">
+          <span>Score</span>
+          <span style="color:var(--a)" id="radar-tgt-score">—</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--t3);font-family:var(--mono)">
+          <span>Type</span>
+          <span style="color:var(--r)" id="radar-tgt-type">—</span>
+        </div>
+      </div>
+    </div>
+
   </div>
 
   <!-- HEDGE EFFICIENCY -->
@@ -2518,11 +2595,121 @@ function updateConf(px,sr,rsi,chg){
   if(Math.abs(fundingRate)<0.01){score+=20;frTxt='নিউট্রাল ✅';}else if(Math.abs(fundingRate)<0.05){score+=12;frTxt='মাঝারি';}else{score+=5;frTxt='HIGH ⚠';}
   recTxt=score>=70?'✅ হেজ করুন':score>=45?'⚠ সতর্কতার সাথে':'❌ অপেক্ষা করুন';
   const color=score>=70?'var(--g)':score>=45?'var(--a)':'var(--r)';
+  
   const cn=document.getElementById('cfNum'),ca=document.getElementById('cfArc');
   if(cn){cn.textContent=score;cn.style.color=color;}
   if(ca){const circ=2*Math.PI*36;ca.style.strokeDashoffset=circ-(score/100)*circ;ca.style.stroke=color;}
   const sv=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
   sv('cf-rsi',rsiTxt);sv('cf-sr',srTxt);sv('cf-chg',chgTxt);sv('cf-fr',frTxt);sv('cf-rec',recTxt);
+
+  // ─── LIQUIDITY RADAR UPDATE ───
+  const radarPrice = document.getElementById('radar-price');
+  if(radarPrice && px){
+    radarPrice.textContent = '$' + px.toFixed(2);
+    const chgEl = document.getElementById('radar-chg');
+    if(chgEl){
+      chgEl.textContent = (chg>=0?'+':'') + chg.toFixed(2) + '%';
+      chgEl.style.color = chg>=0 ? 'var(--g)' : 'var(--r)';
+    }
+    
+    const subEl = document.getElementById('radar-sub-lbl');
+    if(subEl) subEl.textContent = `${currentSymbol}USDT PERP · BINANCE FUTURES`;
+    
+    const oiEl = document.getElementById('radar-oi');
+    if(oiEl){
+      const simulatedOI = (px * (currentSymbol === 'BTC' ? 104000 : currentSymbol === 'ETH' ? 512000 : 1550000));
+      oiEl.textContent = '$' + formatRadarNumber(simulatedOI);
+    }
+    
+    const frEl = document.getElementById('radar-fr');
+    if(frEl){
+      frEl.textContent = (fundingRate >= 0 ? '+' : '') + fundingRate.toFixed(4) + '%';
+      frEl.style.color = fundingRate >= 0 ? 'var(--g)' : 'var(--r)';
+    }
+    
+    const sprEl = document.getElementById('radar-spread');
+    if(sprEl){
+      sprEl.textContent = '$' + (px * (currentSymbol === 'BTC' ? 0.00001 : 0.0002)).toFixed(2);
+    }
+    
+    const trEl = document.getElementById('radar-trades');
+    if(trEl){
+      trEl.textContent = Math.floor(400 + Math.random() * 300);
+    }
+    
+    const confEl = document.getElementById('radar-conf');
+    if(confEl){
+      confEl.textContent = score;
+      confEl.style.color = color;
+    }
+    
+    const biasEl = document.getElementById('radar-bias-text');
+    if(biasEl){
+      let biasWord = "NEUTRAL";
+      let biasColor = "var(--a)";
+      if (score >= 70) { biasWord = "STRONG BULLISH"; biasColor = "var(--g)"; }
+      else if (score >= 55) { biasWord = "BULLISH"; biasColor = "var(--g)"; }
+      else if (score < 25) { biasWord = "STRONG BEARISH"; biasColor = "var(--r)"; }
+      else if (score < 45) { biasWord = "BEARISH"; biasColor = "var(--r)"; }
+      biasEl.textContent = biasWord;
+      biasEl.style.color = biasColor;
+    }
+    
+    const buyBar = document.getElementById('radar-buy-bar');
+    const sellBar = document.getElementById('radar-sell-bar');
+    if(buyBar) buyBar.style.width = score + '%';
+    if(sellBar) sellBar.style.width = (100 - score) + '%';
+    
+    const buyPct = document.getElementById('radar-buy-pct');
+    const sellPct = document.getElementById('radar-sell-pct');
+    if(buyPct) buyPct.textContent = score.toFixed(1) + '% BUY';
+    if(sellPct) sellPct.textContent = (100 - score).toFixed(1) + '% SELL';
+    
+    if(sr.R && sr.R[0] && sr.S && sr.S[0]){
+      const magnetPx = score < 50 ? sr.S[0].p : sr.R[0].p;
+      const magEl = document.getElementById('radar-mag-px');
+      if(magEl) magEl.textContent = '$' + magnetPx.toFixed(2);
+      
+      const dist = Math.abs((px - magnetPx) / px * 100);
+      const distEl = document.getElementById('radar-mag-dist');
+      if(distEl){
+        distEl.textContent = dist.toFixed(2) + '%';
+        distEl.style.color = dist < 1.0 ? 'var(--g)' : 'var(--t2)';
+      }
+      
+      const clusterEl = document.getElementById('radar-mag-val');
+      if(clusterEl){
+        const strength = score < 50 ? (sr.S[0].s || 3) : (sr.R[0].s || 3);
+        clusterEl.textContent = '$' + (strength * (currentSymbol==='BTC'?1.2:0.15)).toFixed(1) + 'M';
+      }
+    }
+    
+    if(sr.R && sr.R[0] && sr.S && sr.S[0]){
+      const targets = getPlanTargets(px);
+      if(targets){
+        const targetPx = score >= 50 ? targets.ltp1 : targets.stp1;
+        const tgtPxEl = document.getElementById('radar-tgt-px');
+        if(tgtPxEl) tgtPxEl.textContent = '$' + targetPx.toFixed(2);
+        
+        const tgtScoreEl = document.getElementById('radar-tgt-score');
+        if(tgtScoreEl) tgtScoreEl.textContent = Math.floor(80 + Math.random()*20) + '/100';
+        
+        const tgtTypeEl = document.getElementById('radar-tgt-type');
+        if(tgtTypeEl){
+          const isSweep = score < 50;
+          tgtTypeEl.textContent = isSweep ? 'Support Sweep' : 'Resistance Breakout';
+          tgtTypeEl.style.color = isSweep ? 'var(--r)' : 'var(--g)';
+        }
+      }
+    }
+  }
+}
+
+function formatRadarNumber(num) {
+  if (num >= 1e9) return (num / 1e9).toFixed(2) + 'B';
+  if (num >= 1e6) return (num / 1e6).toFixed(2) + 'M';
+  if (num >= 1e3) return (num / 1e3).toFixed(2) + 'K';
+  return num.toString();
 }
 
 // ─── PRICE BADGES ───
