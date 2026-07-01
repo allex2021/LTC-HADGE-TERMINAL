@@ -951,6 +951,29 @@ body>*{position:relative;z-index:1}
       <div class="pfield"><label class="plabel">শর্ট মার্জিন ($)</label><input class="pinput" id="pl-sm" type="number" value="40" oninput="onPlanChange()"></div>
       <div class="pfield"><label class="plabel">রিজার্ভ ($)</label><input class="pinput" id="pl-res" type="number" value="10" readonly style="opacity:.6"></div>
     </div>
+    
+    <!-- Cyber2 Daily $20 Strategy Preset Buttons -->
+    <div style="margin-top:12px;border-top:.5px solid var(--bd);padding-top:10px">
+      <div style="font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;font-family:var(--mono)">Cyber2 $20 Daily Swing Presets</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px">
+        <button class="btn" onclick="applySwingPreset(250)" style="font-size:10px;padding:6px;background:var(--bg3);border:.5px solid var(--bd2);color:var(--t);border-radius:6px;cursor:pointer">
+          $250 Tier (20x)
+        </button>
+        <button class="btn" onclick="applySwingPreset(500)" style="font-size:10px;padding:6px;background:var(--bg3);border:.5px solid var(--bd2);color:var(--t);border-radius:6px;cursor:pointer">
+          $500 Tier (10x)
+        </button>
+        <button class="btn" onclick="applySwingPreset(1000)" style="font-size:10px;padding:6px;background:var(--bg3);border:.5px solid var(--bd2);color:var(--t);border-radius:6px;cursor:pointer">
+          $1k Tier (10x)
+        </button>
+      </div>
+      
+      <!-- Target Mode Toggle -->
+      <div style="display:flex;justify-content:space-between;align-items:center;background:var(--bg3);padding:8px 10px;border-radius:8px;border:.5px solid var(--bd2)">
+        <span style="font-size:10px;color:var(--t2);font-weight:700">🎯 Enable 3.0% Swing Mode</span>
+        <input type="checkbox" id="swing-target-mode" style="width:16px;height:16px;cursor:pointer" onchange="onPlanChange()">
+      </div>
+    </div>
+    
     <button class="btn btng" onclick="applySmartHedgeRatio()" style="width:100%;margin-top:10px;font-size:10px;font-weight:700;background:linear-gradient(135deg,var(--b),var(--g));color:var(--bg);border:none;padding:8px 12px;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 0 10px rgba(0,196,255,0.2)">
       <span>🤖 AI Smart-Ratio Auto Size</span>
     </button>
@@ -2382,6 +2405,19 @@ function renderFRChart(){
 // ─── PLAN & RISK ───
 function getPlanTargets(px){
   if(!px)return null;
+
+  // Cyber2 Swing Target override
+  const isSwing = document.getElementById('swing-target-mode')?.checked;
+  if(isSwing){
+    const ltp1 = px * 1.03;      // +3.0% TP1 Swing Target
+    const ltp2 = px * 1.05;      // +5.0% TP2
+    const stp1 = px * 0.97;      // -3.0% TP1 for short
+    const stp2 = px * 0.95;      // -5.0% TP2 for short
+    const lsl = px * 0.92;       // -8.0% Stop Loss (highly safe swing range)
+    const ssl = px * 1.08;       // +8.0% Stop Loss for short
+    return {ltp1,ltp2,stp1,stp2,lsl,ssl};
+  }
+
   const atrPct=atrVal&&px?atrVal/px:0;
   const ltp1pct=atrPct>0?Math.min(Math.max(atrPct,0.01),0.04):0.015;
   const ltp2pct=atrPct>0?Math.min(Math.max(atrPct,0.015),0.06)*1.8:0.028;
@@ -2391,6 +2427,35 @@ function getPlanTargets(px){
   const stp1=px*(1-stp1pct),stp2=px*(1-stp2pct);
   const lsl=px*(1-0.04),ssl=px*(1+0.035);
   return {ltp1,ltp2,stp1,stp2,lsl,ssl};
+}
+
+function applySwingPreset(tier) {
+  const levEl = document.getElementById('pl-lev');
+  const lmEl = document.getElementById('pl-lm');
+  const smEl = document.getElementById('pl-sm');
+  const swingCheck = document.getElementById('swing-target-mode');
+  
+  if(!levEl || !lmEl || !smEl) return;
+  
+  if(tier === 250) {
+    levEl.value = 20;
+    lmEl.value = 30;
+    smEl.value = 30;
+  } else if(tier === 500) {
+    levEl.value = 10;
+    lmEl.value = 60;
+    smEl.value = 60;
+  } else if(tier === 1000) {
+    levEl.value = 10;
+    lmEl.value = 120;
+    smEl.value = 120;
+  }
+  
+  if(swingCheck) swingCheck.checked = true;
+  
+  // Calculate and update view
+  onPlanChange();
+  showToast(`🎯 Applied $${tier} Capital Preset for Swing Hedging (TP: 3.0%)`, 'above');
 }
 function formatPrice(coin,val){
   if(coin==='BTC')return val.toFixed(1);
