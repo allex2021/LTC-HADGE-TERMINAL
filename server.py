@@ -70,7 +70,8 @@ class ProxyHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             self.wfile.write(str(e).encode('utf-8'))
 
     def do_GET(self):
-        if self.path == '/ideas':
+        path_clean = self.path.split('?')[0]
+        if path_clean == '/ideas':
             self.send_response(200)
             self.send_header('Access-Control-Allow-Origin', '*')
             self.send_header('Content-Type', 'application/json')
@@ -78,7 +79,7 @@ class ProxyHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             import json
             res = get_tradingview_ideas()
             self.wfile.write(json.dumps(res).encode('utf-8'))
-        elif self.path in ['/api/bybit/balance', '/api/bybit/positions', '/api/binance/balance', '/api/binance/positions']:
+        elif path_clean in ['/api/bybit/balance', '/api/bybit/positions', '/api/binance/balance', '/api/binance/positions']:
             self.send_response(200)
             self.send_header('Access-Control-Allow-Origin', '*')
             self.send_header('Content-Type', 'application/json')
@@ -94,15 +95,15 @@ class ProxyHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
                 
             import json
             res = {"error": "Invalid Path"}
-            if self.path == '/api/bybit/balance':
+            if path_clean == '/api/bybit/balance':
                 res = make_bybit_request('/v5/account/wallet-balance', {"accountType": "UNIFIED"}, api_key, api_secret)
                 if isinstance(res, dict) and (res.get('retCode') == 10016 or 'Unified account' in res.get('retMsg', '')):
                     res = make_bybit_request('/v5/account/wallet-balance', {"accountType": "CONTRACT"}, api_key, api_secret)
-            elif self.path == '/api/bybit/positions':
+            elif path_clean == '/api/bybit/positions':
                 res = make_bybit_request('/v5/position/list', {"category": "linear", "settleCoin": "USDT"}, api_key, api_secret)
-            elif self.path == '/api/binance/balance':
+            elif path_clean == '/api/binance/balance':
                 res = make_binance_request('/fapi/v2/balance', {}, api_key, api_secret)
-            elif self.path == '/api/binance/positions':
+            elif path_clean == '/api/binance/positions':
                 res = make_binance_request('/fapi/v2/positionRisk', {}, api_key, api_secret)
             
             self.wfile.write(json.dumps(res).encode('utf-8'))
