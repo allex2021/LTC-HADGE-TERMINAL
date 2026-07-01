@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
 <title>LTC/HEDGE TERMINAL v7 · ALLEX</title>
-<script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+<script src="https://s3.tradingview.com/tv.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=IBM+Plex+Sans:wght@300;400;500;600;700&family=Orbitron:wght@700;900&display=swap');
 :root{
@@ -109,8 +109,8 @@ body>*{position:relative;z-index:1}
 .chart-tf{display:flex;gap:4px}
 .tf-btn{padding:3px 8px;border-radius:5px;font-size:10px;font-family:var(--mono);border:.5px solid var(--bd2);background:transparent;color:var(--t3);cursor:pointer;transition:all .15s}
 .tf-btn.on{background:var(--gd2);color:var(--g);border-color:var(--g2)}
-#tvChart{height:240px}
-@media(min-width:600px){#tvChart{height:300px}}
+#tvChart{height:380px}
+@media(min-width:600px){#tvChart{height:480px}}
 
 /* ─── ORDER BOOK IMBALANCE ─── */
 .ob-wrap{background:var(--bg2);border:.5px solid var(--bd2);border-radius:var(--r2);padding:12px 14px;margin-bottom:10px}
@@ -545,15 +545,9 @@ body>*{position:relative;z-index:1}
 <!-- ─── TRADINGVIEW CHART ─── -->
 <div class="chart-wrap">
   <div class="chart-head">
-    <span class="chart-title" id="chartTitle">LTC/USDT · CANDLESTICK</span>
-    <div class="chart-tf">
-      <button class="tf-btn" onclick="loadChart('15m')">15m</button>
-      <button class="tf-btn on" onclick="loadChart('1h')" id="tf-1h">1h</button>
-      <button class="tf-btn" onclick="loadChart('4h')">4h</button>
-      <button class="tf-btn" onclick="loadChart('1d')">1D</button>
-    </div>
+    <span class="chart-title" id="chartTitle">LTC/USDT · TRADINGVIEW ADVANCED</span>
   </div>
-  <div id="tvChart"></div>
+  <div id="tvChart" style="width:100%"></div>
 </div>
 
 <!-- ─── ORDER BOOK IMBALANCE ─── -->
@@ -1750,16 +1744,16 @@ function updateChartPriceLines(px,sr){
 function changeSymbol(sym){
   currentSymbol = sym;
   const logo = document.getElementById('logoSymbol'); if(logo) logo.textContent = sym;
-  const titleEl = document.getElementById('chartTitle'); if(titleEl) titleEl.textContent = `${sym}/USDT · CANDLESTICK`;
+  const titleEl = document.getElementById('chartTitle'); if(titleEl) titleEl.textContent = `${sym}/USDT · TRADINGVIEW ADVANCED`;
   document.title = `${sym}/HEDGE TERMINAL v7 · ALLEX`;
   
   // Reconnect WebSocket & reset charts
   initWS();
-  clearChartPriceLines();
-  loadChart(currentTF);
+  initTradingViewWidget(sym);
   
-  // Reload pricing
+  // Reload pricing & background indicators
   loadAll();
+  loadChart('1h');
   
   // Clear alerts for previous symbol
   priceAlerts = [];
@@ -2062,46 +2056,65 @@ function markBW(){
 // ═══════════════════════════════════════════════════════
 // TRADINGVIEW LIGHTWEIGHT CHARTS
 // ═══════════════════════════════════════════════════════
+let tvWidget = null;
+function initTradingViewWidget(symbolName){
+  const container = document.getElementById('tvChart');
+  if(!container) return;
+  
+  // Clear previous content
+  container.innerHTML = '';
+  
+  // Binance feed symbol
+  const tvSymbol = `BINANCE:${symbolName}USDT`;
+  
+  if(typeof TradingView === 'undefined'){
+    // Fallback if script loading delayed
+    setTimeout(() => initTradingViewWidget(symbolName), 500);
+    return;
+  }
+  
+  tvWidget = new TradingView.widget({
+    "autosize": true,
+    "symbol": tvSymbol,
+    "interval": "15",
+    "timezone": "Etc/UTC",
+    "theme": "dark",
+    "style": "1",
+    "locale": "en",
+    "enable_publishing": false,
+    "hide_side_toolbar": false,
+    "allow_symbol_change": true,
+    "container_id": "tvChart",
+    "studies": [
+      "RSI@tv-basicstudies",
+      "MASimple@tv-basicstudies"
+    ]
+  });
+}
+
 function initChart(){
-  const container=document.getElementById('tvChart');
-  if(!container||typeof LightweightCharts==='undefined')return;
-  tvChart=LightweightCharts.createChart(container,{
-    width:container.offsetWidth,
-    height:container.offsetHeight,
-    layout:{background:{type:'Solid',color:'#080e16'},textColor:'#6b82a0'},
-    grid:{vertLines:{color:'rgba(26,37,53,.8)'},horzLines:{color:'rgba(26,37,53,.8)'}},
-    crosshair:{mode:LightweightCharts.CrosshairMode.Normal,vertLine:{color:'rgba(0,245,168,.4)'},horzLine:{color:'rgba(0,245,168,.4)'}},
-    timeScale:{borderColor:'#1a2535',timeVisible:true,secondsVisible:false},
-    rightPriceScale:{borderColor:'#1a2535'},
-    handleScroll:{mouseWheel:true,pressedMouseMove:true},
-    handleScale:{mouseWheel:true,pinch:true},
-  });
-  candleSeries=tvChart.addCandlestickSeries({
-    upColor:'#00f5a8',downColor:'#ff2d55',
-    borderUpColor:'#00f5a8',borderDownColor:'#ff2d55',
-    wickUpColor:'#00c484',wickDownColor:'#cc2244',
-  });
-  window.addEventListener('resize',()=>{if(tvChart&&container)tvChart.applyOptions({width:container.offsetWidth});});
+  initTradingViewWidget(currentSymbol);
   loadChart('1h');
 }
 
 async function loadChart(tf){
   currentTF=tf;
-  document.querySelectorAll('.tf-btn').forEach(b=>b.classList.remove('on'));
-  document.querySelectorAll('.tf-btn').forEach(b=>{if(b.textContent.trim()===tf)b.classList.add('on');});
-  if(!candleSeries)return;
   try{
     const klines=await getKlines(tf);
-    const data=klines.map(k=>({time:k[0]/1000,open:parseFloat(k[1]),high:parseFloat(k[2]),low:parseFloat(k[3]),close:parseFloat(k[4])}));
-    candleSeries.setData(data);
-    if(tvChart)tvChart.timeScale().fitContent();
-    // Also derive technicals from 4h
-    if(tf==='4h'||tf==='1h'){
-      const closes=klines.map(k=>parseFloat(k[4]));
-      rsiVal=calcRSI(closes);atrVal=calcATR(klines);
-      if(price){renderRSI(rsiVal);renderATR(atrVal,price);SR=calcSR(klines,price);renderLad(price,SR);renderPlan(price,SR);updateConf(price,SR,rsiVal,0);}
+    
+    // Always derive technicals in background for terminal analytics panels
+    const closes=klines.map(k=>parseFloat(k[4]));
+    rsiVal=calcRSI(closes);
+    atrVal=calcATR(klines);
+    if(price){
+      renderRSI(rsiVal);
+      renderATR(atrVal,price);
+      SR=calcSR(klines,price);
+      renderLad(price,SR);
+      renderPlan(price,SR);
+      updateConf(price,SR,rsiVal,0);
     }
-  }catch(e){console.warn('chart load err',e);}
+  }catch(e){console.warn('technicals calculation err',e);}
 }
 
 // ═══════════════════════════════════════════════════════
