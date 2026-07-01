@@ -78,6 +78,34 @@ class ProxyHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             import json
             res = get_tradingview_ideas()
             self.wfile.write(json.dumps(res).encode('utf-8'))
+        elif self.path in ['/api/bybit/balance', '/api/bybit/positions', '/api/binance/balance', '/api/binance/positions']:
+            self.send_response(200)
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            
+            api_key = self.headers.get('X-Api-Key', '')
+            api_secret = self.headers.get('X-Api-Secret', '')
+            
+            if not api_key or not api_secret:
+                import json
+                self.wfile.write(json.dumps({"error": "Missing API Key or API Secret headers"}).encode('utf-8'))
+                return
+                
+            import json
+            res = {"error": "Invalid Path"}
+            if self.path == '/api/bybit/balance':
+                res = make_bybit_request('/v5/account/wallet-balance', {"accountType": "UNIFIED"}, api_key, api_secret)
+                if isinstance(res, dict) and (res.get('retCode') == 10016 or 'Unified account' in res.get('retMsg', '')):
+                    res = make_bybit_request('/v5/account/wallet-balance', {"accountType": "CONTRACT"}, api_key, api_secret)
+            elif self.path == '/api/bybit/positions':
+                res = make_bybit_request('/v5/position/list', {"category": "linear", "settleCoin": "USDT"}, api_key, api_secret)
+            elif self.path == '/api/binance/balance':
+                res = make_binance_request('/fapi/v2/balance', {}, api_key, api_secret)
+            elif self.path == '/api/binance/positions':
+                res = make_binance_request('/fapi/v2/positionRisk', {}, api_key, api_secret)
+            
+            self.wfile.write(json.dumps(res).encode('utf-8'))
         elif self.path.startswith('/proxy/'):
             self.handle_proxy('GET')
         else:
@@ -193,6 +221,88 @@ def get_tradingview_ideas():
             "symbol": symbol
         })
     return {"ideas": ideas}
+
+def make_bybit_request(path, query_params, api_key, api_secret):
+    import hmac
+    import hashlib
+    import time
+    import json
+    import urllib.request
+    import urllib.parse
+    
+    timestamp = str(int(time.time() * 1000))
+    recv_window = "5000"
+    
+    query_string = urllib.parse.urlencode(sorted(query_params.items()))
+    
+    param_str = timestamp + api_key + recv_window + query_string
+    sig = hmac.new(
+        api_secret.encode('utf-8'),
+        param_str.encode('utf-8'),
+        hashlib.sha256
+    ).hexdigest()
+    
+    url = f"https://api.bybit.com{path}"
+    if query_string:
+        url += f"?{query_string}"
+        
+    req = urllib.request.Request(url, method="GET")
+    req.add_header("X-BAPI-API-KEY", api_key)
+    req.add_header("X-BAPI-TIMESTAMP", timestamp)
+    req.add_header("X-BAPI-RECV-WINDOW", recv_window)
+    req.add_header("X-BAPI-SIGN", sig)
+    req.add_header("Content-Type", "application/json")
+    
+    try:
+        with urllib.request.urlopen(req, timeout=10) as response:
+            res_body = response.read().decode('utf-8')
+            return json.loads(res_body)
+    except urllib.error.HTTPError as e:
+        try:
+            err_body = e.read().decode('utf-8')
+            return {"error": e.code, "details": json.loads(err_body)}
+        except:
+            return {"error": e.code, "message": str(e)}
+    except Exception as e:
+        return {"error": 500, "message": str(e)}
+
+def make_binance_request(path, query_params, api_key, api_secret):
+    import hmac
+    import hashlib
+    import time
+    import json
+    import urllib.request
+    import urllib.parse
+    
+    timestamp = str(int(time.time() * 1000))
+    query_params["timestamp"] = timestamp
+    query_params["recvWindow"] = "5000"
+    
+    query_string = urllib.parse.urlencode(query_params)
+    sig = hmac.new(
+        api_secret.encode('utf-8'),
+        query_string.encode('utf-8'),
+        hashlib.sha256
+    ).hexdigest()
+    
+    url = f"https://fapi.binance.com{path}?{query_string}&signature={sig}"
+    
+    req = urllib.request.Request(url, method="GET")
+    req.add_header("X-MBX-APIKEY", api_key)
+    req.add_header("Content-Type", "application/json")
+    
+    try:
+        with urllib.request.urlopen(req, timeout=10) as response:
+            res_body = response.read().decode('utf-8')
+            return json.loads(res_body)
+    except urllib.error.HTTPError as e:
+        try:
+            err_body = e.read().decode('utf-8')
+            return {"error": e.code, "details": json.loads(err_body)}
+        except:
+            return {"error": e.code, "message": str(e)}
+    except Exception as e:
+        return {"error": 500, "message": str(e)}
 
 if __name__ == '__main__':
     script_dir = os.path.dirname(os.path.abspath(__file__))

@@ -693,11 +693,12 @@ body>*{position:relative;z-index:1}
 <!-- ─── WHALE ALERT ─── -->
 <div class="walert" id="wbar"><span>🐋</span><span id="wmsg"></span></div>
 
-<!-- ─── MAIN TABS (3 primary) ─── -->
+<!-- ─── MAIN TABS (4 primary) ─── -->
 <div class="tab-nav">
   <button class="tab-btn on" onclick="goTab('market',this)"><span class="tab-ico">📊</span>Market</button>
   <button class="tab-btn" onclick="goTab('trade',this)"><span class="tab-ico">⚡</span>Trade</button>
   <button class="tab-btn" onclick="goTab('tools',this)"><span class="tab-ico">🛠</span>Tools</button>
+  <button class="tab-btn" onclick="goTab('portfolio',this)"><span class="tab-ico">💼</span>Portfolio</button>
 </div>
 
 <!-- ═══════════════════════════════════
@@ -1153,6 +1154,58 @@ body>*{position:relative;z-index:1}
     <div class="msec"><div class="mhdr" onclick="togMan(this)"><span>৫. CSV Journal Export</span><span>▼</span></div><div class="mbody"><p>Journal Tab-এ "CSV Export" বাটন চাপলে সব ট্রেড ডেটা .csv ফাইলে ডাউনলোড হবে।</p><div class="mrule"><div class="mico" style="background:var(--gd2);color:var(--g)">📊</div><div style="font-size:12px;color:var(--t2);line-height:1.7">Date, Entry, Exit, PnL%, Duration, Side সব কলাম থাকবে। Excel-এ খোলা যাবে।</div></div></div></div>
   </div>
 
+</div>
+
+<!-- ═══════════════════════════════════
+     TAB 4: PORTFOLIO
+═══════════════════════════════════ -->
+<div class="sec" id="sec-portfolio" style="display:none">
+  <!-- KPI Row -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:12px">
+    <div style="background:var(--bg2);border:.5px solid var(--bd2);padding:12px;border-radius:var(--r2);text-align:center">
+      <div style="font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">💰 Exchange Balance</div>
+      <div style="font-size:16px;font-weight:bold;color:var(--t)" id="api-wallet-balance">$0.00</div>
+      <div style="font-size:9px;color:var(--t3);margin-top:2px" id="api-wallet-name">-</div>
+    </div>
+    
+    <div style="background:var(--bg2);border:.5px solid var(--bd2);padding:12px;border-radius:var(--r2);text-align:center">
+      <div style="font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">📈 Used Margin</div>
+      <div style="font-size:16px;font-weight:bold;color:var(--t)" id="api-used-margin">$0.00</div>
+      <div style="font-size:9px;color:var(--t3);margin-top:2px" id="api-free-margin">Available: $0.00</div>
+    </div>
+    
+    <div style="background:var(--bg2);border:.5px solid var(--bd2);padding:12px;border-radius:var(--r2);text-align:center">
+      <div style="font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">📊 Active Positions</div>
+      <div style="font-size:16px;font-weight:bold;color:var(--t)" id="api-positions-count">0</div>
+      <div style="font-size:9px;color:var(--t3);margin-top:2px">Hedge Legs Count</div>
+    </div>
+    
+    <div style="background:var(--bg2);border:.5px solid var(--bd2);padding:12px;border-radius:var(--r2);text-align:center" id="api-pnl-card">
+      <div style="font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">⚖️ Unrealized P&L</div>
+      <div style="font-size:16px;font-weight:bold;color:var(--t)" id="api-total-pnl">$0.00</div>
+      <div style="font-size:9px;color:var(--t3);margin-top:2px" id="api-total-pnl-pct">0.00%</div>
+    </div>
+  </div>
+  
+  <!-- Sync & Status Bar -->
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;background:var(--bg2);padding:8px 12px;border-radius:var(--r2);border:.5px solid var(--bd2)">
+    <div style="display:flex;align-items:center;gap:8px">
+      <span class="dot" id="api-status-dot" style="background:var(--t3);width:8px;height:8px;border-radius:50%;display:inline-block"></span>
+      <span style="font-size:11px;color:var(--t)" id="api-connection-status">No API Connected</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <span id="api-last-updated" style="font-family:var(--mono);font-size:9px;color:var(--t3)">Never updated</span>
+      <button onclick="refreshLivePortfolio()" class="btn" style="background:var(--bg3);color:var(--t);border:.5px solid var(--bd2);padding:4px 10px;font-size:10px;border-radius:6px;cursor:pointer">🔄 Refresh</button>
+    </div>
+  </div>
+  
+  <!-- Active Positions List -->
+  <div style="background:var(--bg2);border:.5px solid var(--bd2);border-radius:var(--r2);padding:14px">
+    <div class="sub" style="margin-bottom:12px">🏃 Active Hedged Positions</div>
+    <div id="api-positions-list">
+      <div style="text-align:center;padding:30px;color:var(--t3)">পজিশন দেখতে এপিআই সেটিংস এ কি (Key) সেটআপ করুন।</div>
+    </div>
+  </div>
 </div>
 
 <!-- ADD JOURNAL MODAL -->
@@ -3712,6 +3765,274 @@ function reloadIdeas(){
 }
 
 // ═══════════════════════════════════════════════════════
+// LIVE EXCHANGE PORTFOLIO SYNC
+// ═══════════════════════════════════════════════════════
+let apiExchange = 'bybit';
+async function refreshLivePortfolio(){
+  const dot = document.getElementById('api-status-dot');
+  const conn = document.getElementById('api-connection-status');
+  const list = document.getElementById('api-positions-list');
+  const sel = document.getElementById('api-exchange-select');
+  const lastUpd = document.getElementById('api-last-updated');
+  
+  if(!dot || !conn || !list) return;
+  
+  const hasBybit = !!(settings.bybitKey && settings.bybitSecret);
+  const hasBinance = !!(settings.binanceKey && settings.binanceSecret);
+  
+  if(!hasBybit && !hasBinance){
+    dot.style.background = 'var(--r)';
+    conn.textContent = 'No API Keys Set';
+    if(sel) sel.style.display = 'none';
+    list.innerHTML = `
+      <div style="text-align:center;padding:25px;color:var(--t3);line-height:1.7">
+        <span style="font-size:24px">⚠️</span><br><br>
+        কোনো এপিআই কী সেট করা নেই!<br>
+        দয়া করে গিয়ার আইকন <button class="btn btnsm" onclick="toggleSettings(true)" style="background:var(--bg3);color:var(--t);border:.5px solid var(--bd2);padding:2px 8px;font-size:9px;border-radius:4px;cursor:pointer">⚙️ সেটিংস</button> এ গিয়ে Bybit বা Binance API Key এবং Secret সেট করুন।
+      </div>
+    `;
+    return;
+  }
+  
+  if(sel){
+    if(hasBybit && hasBinance){
+      sel.style.display = 'inline-block';
+    } else {
+      sel.style.display = 'none';
+      apiExchange = hasBybit ? 'bybit' : 'binance';
+    }
+    sel.value = apiExchange;
+  } else {
+    apiExchange = hasBybit ? 'bybit' : 'binance';
+  }
+  
+  const key = apiExchange === 'bybit' ? settings.bybitKey : settings.binanceKey;
+  const secret = apiExchange === 'bybit' ? settings.bybitSecret : settings.binanceSecret;
+  
+  dot.style.background = 'var(--a)';
+  conn.textContent = `Connecting to ${apiExchange === 'bybit' ? 'Bybit' : 'Binance'}...`;
+  
+  const baseUrl = window.location.origin.startsWith('http') ? window.location.origin : 'http://localhost:8000';
+  
+  try {
+    const balRes = await fetch(`${baseUrl}/api/${apiExchange}/balance`, {
+      headers: {
+        'X-Api-Key': key,
+        'X-Api-Secret': secret
+      }
+    });
+    const balData = await balRes.json();
+    
+    const posRes = await fetch(`${baseUrl}/api/${apiExchange}/positions`, {
+      headers: {
+        'X-Api-Key': key,
+        'X-Api-Secret': secret
+      }
+    });
+    const posData = await posRes.json();
+    
+    if(balData.error || posData.error){
+      throw new Error(balData.message || balData.error || posData.message || posData.error || 'API Error');
+    }
+    
+    dot.style.background = 'var(--g)';
+    conn.textContent = `Connected to ${apiExchange === 'bybit' ? 'Bybit' : 'Binance'}`;
+    if(lastUpd) lastUpd.textContent = new Date().toLocaleTimeString();
+    
+    let totalBal = 0;
+    let usedMargin = 0;
+    let freeBal = 0;
+    let walletName = 'Futures Account';
+    
+    if(apiExchange === 'bybit'){
+      const wList = balData.result?.list || [];
+      if(wList.length){
+        const acc = wList[0];
+        totalBal = parseFloat(acc.totalEquity || acc.walletBalance || 0);
+        usedMargin = parseFloat(acc.totalPositionIM || acc.totalMaintenanceMargin || 0);
+        freeBal = parseFloat(acc.totalAvailableBalance || acc.availableBalance || 0);
+        walletName = balData.result.accountType === 'UNIFIED' ? 'Unified Wallet' : 'Contract Wallet';
+      }
+    } else {
+      if(Array.isArray(balData)){
+        const usdtAsset = balData.find(a => a.asset === 'USDT');
+        if(usdtAsset){
+          totalBal = parseFloat(usdtAsset.marginBalance || 0);
+          usedMargin = parseFloat(usdtAsset.maintMargin || 0);
+          freeBal = parseFloat(usdtAsset.maxWithdrawAmount || 0);
+          walletName = 'USD-M Futures';
+        }
+      }
+    }
+    
+    document.getElementById('api-wallet-balance').textContent = `$${totalBal.toFixed(2)}`;
+    document.getElementById('api-wallet-name').textContent = walletName;
+    document.getElementById('api-used-margin').textContent = `$${usedMargin.toFixed(2)}`;
+    document.getElementById('api-free-margin').textContent = `Available: $${freeBal.toFixed(2)}`;
+    
+    let positions = [];
+    if(apiExchange === 'bybit'){
+      const rawList = posData.result?.list || [];
+      positions = rawList.filter(p => parseFloat(p.size) > 0).map(p => {
+        const side = p.side === 'Buy' ? 'LONG' : 'SHORT';
+        const size = parseFloat(p.size);
+        const value = parseFloat(p.positionValue);
+        const entry = parseFloat(p.avgPrice);
+        const mark = parseFloat(p.markPrice);
+        const liq = parseFloat(p.liqPrice);
+        const pnl = parseFloat(p.unrealisedPnl);
+        const lev = p.leverage;
+        return {
+          symbol: p.symbol,
+          side,
+          size,
+          value,
+          entry,
+          mark,
+          liq,
+          pnl,
+          lev
+        };
+      });
+    } else {
+      if(Array.isArray(posData)){
+        positions = posData.filter(p => parseFloat(p.positionAmt) !== 0).map(p => {
+          const amt = parseFloat(p.positionAmt);
+          const side = amt > 0 ? 'LONG' : 'SHORT';
+          const size = Math.abs(amt);
+          const entry = parseFloat(p.entryPrice);
+          const mark = parseFloat(p.markPrice);
+          const value = size * mark;
+          const liq = parseFloat(p.liquidationPrice);
+          const pnl = parseFloat(p.unRealizedProfit);
+          const lev = p.leverage;
+          return {
+            symbol: p.symbol,
+            side,
+            size,
+            value,
+            entry,
+            mark,
+            liq,
+            pnl,
+            lev
+          };
+        });
+      }
+    }
+    
+    document.getElementById('api-positions-count').textContent = positions.length;
+    
+    const totalPnl = positions.reduce((sum, p) => sum + p.pnl, 0);
+    const pnlPct = totalBal > 0 ? (totalPnl / totalBal) * 100 : 0;
+    
+    const pnlValEl = document.getElementById('api-total-pnl');
+    const pnlPctEl = document.getElementById('api-total-pnl-pct');
+    
+    pnlValEl.textContent = `${totalPnl >= 0 ? '+' : ''}$${totalPnl.toFixed(2)}`;
+    pnlPctEl.textContent = `${totalPnl >= 0 ? '+' : ''}${pnlPct.toFixed(2)}%`;
+    
+    if(totalPnl > 0){
+      pnlValEl.style.color = 'var(--g)';
+      pnlPctEl.style.color = 'var(--g)';
+    } else if(totalPnl < 0){
+      pnlValEl.style.color = 'var(--r)';
+      pnlPctEl.style.color = 'var(--r)';
+    } else {
+      pnlValEl.style.color = 'var(--t)';
+      pnlPctEl.style.color = 'var(--t3)';
+    }
+    
+    if(!positions.length){
+      list.innerHTML = `
+        <div style="text-align:center;padding:30px;color:var(--t3)">
+          কোনো অ্যাক্টিভ পজিশন পাওয়া যায়নি।
+        </div>
+      `;
+      return;
+    }
+    
+    list.innerHTML = `
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:11px;text-align:left">
+          <thead>
+            <tr style="border-bottom:.5px solid var(--bd2);color:var(--t3);height:28px">
+              <th>Symbol</th>
+              <th>Side</th>
+              <th>Lev</th>
+              <th>Size / Value</th>
+              <th>Entry / Mark</th>
+              <th>Liquidation</th>
+              <th style="text-align:right">Unrealized P&L</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${positions.map(p => {
+              const isCurrentSymbol = p.symbol.startsWith(currentSymbol);
+              const highlightStyle = isCurrentSymbol ? 'background:rgba(0,212,255,0.04);font-weight:bold;' : '';
+              
+              const sideClass = p.side === 'LONG' ? 'sent-bull' : 'sent-bear';
+              const sideText = p.side === 'LONG' ? '📈 Long' : '📉 Short';
+              
+              let liqStyle = 'font-family:var(--mono);color:var(--t2)';
+              if(p.liq > 0 && p.mark > 0){
+                const dist = Math.abs(p.mark - p.liq) / p.mark;
+                if(dist < 0.05) {
+                  liqStyle = 'font-family:var(--mono);color:var(--r);font-weight:bold;animation:blink 1s infinite;';
+                } else if(dist < 0.1) {
+                  liqStyle = 'font-family:var(--mono);color:var(--a);font-weight:bold;';
+                }
+              }
+              
+              const pnlText = `${p.pnl >= 0 ? '+' : ''}$${p.pnl.toFixed(2)}`;
+              const pnlClass = p.pnl >= 0 ? 'color:var(--g)' : 'color:var(--r)';
+              
+              return `
+                <tr style="border-bottom:.5px solid var(--bd3);height:36px;${highlightStyle}">
+                  <td style="padding:6px 0">
+                    <span style="color:var(--t)">${p.symbol}</span>
+                    ${isCurrentSymbol ? ' <span class="bx bb2" style="font-size:8px;padding:1px 4px;margin-left:4px">Active</span>' : ''}
+                  </td>
+                  <td><span class="news-sentiment ${sideClass}" style="padding:2px 6px;font-size:9px">${sideText}</span></td>
+                  <td style="font-family:var(--mono);color:var(--t2)">${p.lev}x</td>
+                  <td>
+                    <div style="color:var(--t)">${p.size.toFixed(3)}</div>
+                    <div style="color:var(--t3);font-size:9px;font-family:var(--mono)">$${p.value.toFixed(2)}</div>
+                  </td>
+                  <td>
+                    <div style="font-family:var(--mono);color:var(--t)">$${p.entry.toFixed(p.entry > 100 ? 2 : 4)}</div>
+                    <div style="font-family:var(--mono);color:var(--t3);font-size:9px">$${p.mark.toFixed(p.mark > 100 ? 2 : 4)}</div>
+                  </td>
+                  <td style="${liqStyle}">
+                    ${p.liq > 0 ? `$${p.liq.toFixed(p.liq > 100 ? 2 : 4)}` : '—'}
+                  </td>
+                  <td style="text-align:right;font-family:var(--mono);font-weight:bold;${pnlClass}">${pnlText}</td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+    
+  } catch(e) {
+    dot.style.background = 'var(--r)';
+    conn.textContent = 'Connection Failed';
+    list.innerHTML = `
+      <div style="text-align:center;padding:30px;color:var(--r)">
+        ❌ এপিআই ডেটা লোড করতে ব্যর্থ হয়েছে!<br>
+        <span style="font-size:10px;color:var(--t3);font-family:var(--mono);">${e.message}</span>
+      </div>
+    `;
+  }
+}
+
+function setPortfolioExchange(val){
+  apiExchange = val;
+  refreshLivePortfolio();
+}
+
+// ═══════════════════════════════════════════════════════
 // MARKET SESSION TRACKER
 // ═══════════════════════════════════════════════════════
 function updateSessionTracker(){
@@ -3891,6 +4212,17 @@ function goTab(name,btn){
   const sec=document.getElementById('sec-'+name);if(sec)sec.classList.add('on');
   btn.classList.add('on');
   btn.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
+  
+  if(name === 'portfolio'){
+    refreshLivePortfolio();
+    if(window.apiPollingInterval) clearInterval(window.apiPollingInterval);
+    window.apiPollingInterval = setInterval(refreshLivePortfolio, 15000);
+  } else {
+    if(window.apiPollingInterval) {
+      clearInterval(window.apiPollingInterval);
+      window.apiPollingInterval = null;
+    }
+  }
 }
 function goSubTab(name,btn){
   document.querySelectorAll('.subsec').forEach(s=>{s.style.display='none';});
