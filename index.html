@@ -550,8 +550,9 @@ body>*{position:relative;z-index:1}
 
 <!-- ─── TRADINGVIEW CHART ─── -->
 <div class="chart-wrap">
-  <div class="chart-head">
+  <div class="chart-head" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
     <span class="chart-title" id="chartTitle">LTC/USDT · TRADINGVIEW ADVANCED</span>
+    <span id="chart-signal" class="bx bn3" style="font-size:10px;font-weight:700;letter-spacing:0.5px">LOAD...</span>
   </div>
   <div id="tvChart" style="width:100%"></div>
 </div>
@@ -1755,6 +1756,7 @@ function changeSymbol(sym){
   currentSymbol = sym;
   const logo = document.getElementById('logoSymbol'); if(logo) logo.textContent = sym;
   const titleEl = document.getElementById('chartTitle'); if(titleEl) titleEl.textContent = `${sym}/USDT · TRADINGVIEW ADVANCED`;
+  const sigEl = document.getElementById('chart-signal'); if(sigEl) { sigEl.textContent = 'LOAD...'; sigEl.className = 'bx bn3'; }
   document.title = `${sym}/HEDGE TERMINAL v7 · ALLEX`;
   
   // Reconnect WebSocket & reset charts
@@ -2295,6 +2297,40 @@ function renderPlan(px,sr){
     const bias=dr<ds?`📍 SHORT BIAS: R $${sr.R[0].p.toFixed(2)} কাছে (+${dr.toFixed(1)}%)`:
       `📍 LONG BIAS: S $${sr.S[0].p.toFixed(2)} কাছে (−${ds.toFixed(1)}%)`;
     const bb=document.getElementById('bias-box');if(bb)bb.textContent=bias;
+
+    // Live action signal for chart header
+    const signalEl = document.getElementById('chart-signal');
+    if(signalEl){
+      let sigText = "⚖️ HOLD HEDGE";
+      let sigClass = "bx bo2";
+
+      if (typeof rsiVal !== 'undefined') {
+        if (rsiVal >= 70 && dr < 1.0) {
+          sigText = "🔴 TRIGGER SHORT (RSI Overbought near R)";
+          sigClass = "bx br2";
+        } else if (rsiVal <= 30 && ds < 1.0) {
+          sigText = "🟢 TRIGGER LONG (RSI Oversold near S)";
+          sigClass = "bx bg2";
+        } else if (dr < 0.7) {
+          sigText = "🔴 RESISTANCE: OPEN SHORT LEG";
+          sigClass = "bx br2";
+        } else if (ds < 0.7) {
+          sigText = "🟢 SUPPORT: OPEN LONG LEG";
+          sigClass = "bx bg2";
+        } else if (rsiVal > 65) {
+          sigText = "⚠️ SHORT BIAS (RSI High)";
+          sigClass = "bx ba2";
+        } else if (rsiVal < 35) {
+          sigText = "⚠️ LONG BIAS (RSI Low)";
+          sigClass = "bx ba2";
+        } else {
+          sigText = dr < ds ? "⚖️ RANGE HIGH: SHORT BIAS" : "⚖️ RANGE LOW: LONG BIAS";
+          sigClass = "bx bn3";
+        }
+      }
+      signalEl.textContent = sigText;
+      signalEl.className = sigClass;
+    }
   }
   updateRiskMeter(px,llq,slq);
   updateHedgeEfficiency(px,sr,lm,sm);
