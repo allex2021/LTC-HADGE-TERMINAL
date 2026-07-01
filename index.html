@@ -513,8 +513,14 @@ body>*{position:relative;z-index:1}
   </div>
 </div>
 
-<!-- ─── EXCHANGE STRIP ─── -->
-<div class="exstrip">
+<!-- ─── WHALE ALERT (Full Width) ─── -->
+<div class="walert" id="wbar"><span>🐋</span><span id="wmsg"></span></div>
+
+<div class="main-grid">
+  <!-- LEFT PANEL (Market Tickers & Chart) -->
+  <div class="panel-left">
+    <!-- ─── EXCHANGE STRIP ─── -->
+    <div class="exstrip">
   <div class="exc" id="ex-bn"><div class="exn">Binance</div><div class="exp" id="bn-p">—</div><div class="exc2" id="bn-c">—</div></div>
   <div class="exc" id="ex-by"><div class="exn">Bybit</div><div class="exp" id="by-p">—</div><div class="exc2" id="by-c">—</div></div>
   <div class="exc" id="ex-mx"><div class="exn">MEXC</div><div class="exp" id="mx-p">—</div><div class="exc2" id="mx-c">—</div></div>
@@ -566,6 +572,11 @@ body>*{position:relative;z-index:1}
     <div class="ob-stat"><div class="ob-lbl">SPREAD</div><div class="ob-val" id="ob-spread" style="color:var(--a)">—</div></div>
   </div>
 </div>
+
+  </div> <!-- Closes panel-left -->
+
+  <!-- RIGHT PANEL (Control Tabs & Settings) -->
+  <div class="panel-right">
 
 <!-- ─── MARKET METRICS (L/S ratio, OI Delta, Funding) ─── -->
 <div class="mmetrics">
@@ -684,8 +695,6 @@ body>*{position:relative;z-index:1}
   </div>
 </div>
 
-<!-- ─── WHALE ALERT ─── -->
-<div class="walert" id="wbar"><span>🐋</span><span id="wmsg"></span></div>
 
 <!-- ─── MAIN TABS (4 primary) ─── -->
 <div class="tab-nav">
@@ -1200,7 +1209,8 @@ body>*{position:relative;z-index:1}
       <div style="text-align:center;padding:30px;color:var(--t3)">পজিশন দেখতে এপিআই সেটিংস এ কি (Key) সেটআপ করুন।</div>
     </div>
   </div>
-</div>
+</div> <!-- Closes panel-right -->
+</div> <!-- Closes main-grid -->
 
 <!-- ADD JOURNAL MODAL -->
 <div class="j-add-modal" id="jModal">
