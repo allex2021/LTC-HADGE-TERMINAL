@@ -6,7 +6,7 @@ import urllib.error
 import sys
 import os
 
-PORT = 8000
+PORT = 8080
 
 class ProxyHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
     def end_headers(self):

@@ -4167,7 +4167,7 @@ async function loadIdeas(){
   list.innerHTML = '<div style="text-align:center;padding:30px;color:var(--t3)"><span class="spin"></span><br><br>আইডিয়া লোড হচ্ছে...</div>';
   
   try {
-    const baseUrl = window.location.origin.startsWith('http') ? window.location.origin : 'http://localhost:8000';
+    const baseUrl = window.location.origin.startsWith('http') ? window.location.origin : 'http://localhost:8080';
     const r = await fetch(`${baseUrl}/ideas`);
     const d = await r.json();
     const ideas = d.ideas || [];
@@ -4278,7 +4278,7 @@ async function refreshLivePortfolio(){
   dot.style.background = 'var(--a)';
   conn.textContent = `Connecting to ${apiExchange === 'bybit' ? 'Bybit' : 'Binance'}...`;
   
-  const baseUrl = window.location.origin.startsWith('http') ? window.location.origin : 'http://localhost:8000';
+  const baseUrl = window.location.origin.startsWith('http') ? window.location.origin : 'http://localhost:8080';
   
   try {
     const balRes = await fetch(`${baseUrl}/api/${apiExchange}/balance`, {
@@ -4712,7 +4712,7 @@ async function refreshTelegramFeed(force = false) {
   list.innerHTML = '<div style="text-align:center;padding:30px;color:var(--t3)"><span class="spin"></span><br><br>টেলিগ্রাম পোস্ট লোড হচ্ছে...</div>';
   
   try {
-    const baseUrl = window.location.origin.startsWith('http') ? window.location.origin : 'http://localhost:8000';
+    const baseUrl = window.location.origin.startsWith('http') ? window.location.origin : 'http://localhost:8080';
     const r = await fetch(`${baseUrl}/api/telegram/feed`);
     const d = await r.json();
     const messages = d.messages || [];
