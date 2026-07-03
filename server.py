@@ -107,6 +107,14 @@ class ProxyHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
                 res = make_binance_request('/fapi/v2/positionRisk', {}, api_key, api_secret)
             
             self.wfile.write(json.dumps(res).encode('utf-8'))
+        elif path_clean == '/api/telegram/feed':
+            self.send_response(200)
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            import json
+            res = get_telegram_feed("BCUSAReal")
+            self.wfile.write(json.dumps(res).encode('utf-8'))
         elif self.path.startswith('/proxy/'):
             self.handle_proxy('GET')
         else:
@@ -285,6 +293,69 @@ def make_binance_request(path, query_params, api_key, api_secret):
             return {"error": e.code, "message": str(e)}
     except Exception as e:
         return {"error": 500, "message": str(e)}
+
+def get_telegram_feed(channel="BCUSAReal"):
+    import urllib.request
+    import re
+    
+    url = f"https://t.me/s/{channel}"
+    req = urllib.request.Request(
+        url,
+        headers={
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        }
+    )
+    
+    try:
+        with urllib.request.urlopen(req, timeout=10) as response:
+            html = response.read().decode('utf-8', errors='ignore')
+    except Exception as e:
+        return {"messages": [], "error": str(e)}
+        
+    parts = html.split('<div class="tgme_widget_message_wrap js-widget_message_wrap">')
+    messages = []
+    
+    for p in parts[1:]:
+        post_match = re.search(r'data-post="([^"]+)"', p)
+        if not post_match:
+            continue
+        post_id = post_match.group(1)
+        
+        # Text extraction (tgme_widget_message_text)
+        text = ""
+        text_match = re.search(r'<div class="[^"]*tgme_widget_message_text[^"]*"[^>]*>(.*?)</div>', p, re.DOTALL)
+        if text_match:
+            text_html = text_match.group(1)
+            # Remove HTML tags
+            text = re.sub(r'<[^>]+>', '', text_html).strip()
+            text = re.sub(r'\s+', ' ', text)
+            
+        # Photo extraction (tgme_widget_message_photo_wrap style property)
+        photo = ""
+        photo_match = re.search(r'class="[^"]*tgme_widget_message_photo_wrap[^"]*"[^>]*style="background-image:url\(\'([^\'\)]+)\'\)"', p)
+        if photo_match:
+            photo = photo_match.group(1)
+            
+        # Date extraction
+        date = ""
+        date_match = re.search(r'<time datetime="([^"]+)"', p)
+        if date_match:
+            date = date_match.group(1)
+            
+        link = f"https://t.me/{post_id}"
+        
+        if text or photo:
+            messages.append({
+                "id": post_id.split('/')[-1],
+                "text": text,
+                "photo": photo,
+                "date": date,
+                "link": link
+            })
+            
+    # Reverse list to get newest posts first
+    messages.reverse()
+    return {"messages": messages}
 
 if __name__ == '__main__':
     script_dir = os.path.dirname(os.path.abspath(__file__))
