@@ -3,7 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-<title>LTC/HEDGE TERMINAL v7 · ALLEX</title>
+<title>LTC/HEDGE TERMINAL v8 · ALLEX</title>
+<meta name="application-name" content="LTC Hedge Terminal V8">
+<meta name="description" content="Personal quantitative analytics and hedge simulator dashboard for Litecoin (LTC/USDT).">
+<meta name="author" content="ALLEX">
 <script src="https://s3.tradingview.com/tv.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=IBM+Plex+Sans:wght@300;400;500;600;700&family=Orbitron:wght@700;900&display=swap');
@@ -561,14 +564,10 @@ body>*{position:relative;z-index:1}
 <!-- ─── HEADER ─── -->
 <div class="hdr">
   <div style="display:flex;align-items:center;gap:15px;flex-wrap:wrap">
-    <div class="logo"><em id="logoSymbol">LTC</em>/HEDGE <span class="v7">TERMINAL · V7</span></div>
-    <select id="coinSelect" onchange="changeSymbol(this.value)" style="background:var(--bg3);border:.5px solid var(--bd2);color:var(--g);border-radius:8px;padding:4px 8px;font-family:var(--sans);font-size:11px;font-weight:700;cursor:pointer;outline:none;transition:all 0.15s">
-      <option value="LTC">LTC (Litecoin)</option>
-      <option value="BTC">BTC (Bitcoin)</option>
-      <option value="ETH">ETH (Ethereum)</option>
-      <option value="SOL">SOL (Solana)</option>
-      <option value="XRP">XRP (Ripple)</option>
-    </select>
+    <div class="logo"><em id="logoSymbol">LTC</em>/HEDGE <span class="v7" style="color:var(--g);border-color:rgba(0,245,168,.4);box-shadow:0 0 10px rgba(0,245,168,.25)">TERMINAL · V8</span></div>
+    <div style="background:var(--gd2);border:1px solid var(--g);color:var(--g);border-radius:8px;padding:4px 10px;font-family:var(--mono);font-size:11px;font-weight:700;display:inline-flex;align-items:center;gap:6px">
+      <span class="dot" style="background:var(--g);width:6px;height:6px;border-radius:50%;display:inline-block"></span> LTC/USDT SPECIALIZED
+    </div>
     <div style="display:flex;flex-direction:column;gap:1px">
       <div class="hdr-dev" style="margin-top:0">DEV: <b>ALLEX</b> · CYBER2 · TRADE LEVEL</div>
       <div style="font-size:8px;color:var(--t2);letter-spacing:0.5px;font-family:var(--mono)">SPECIAL THANKS: <b class="glow-name" style="font-size:11px;margin:0 2px">MANOB ROY</b> · <b class="glow-name" style="font-size:11px;margin:0 2px">HASIN RAHYAN</b></div>
@@ -784,7 +783,7 @@ body>*{position:relative;z-index:1}
   <div class="ai-panel" id="aiPanel">
     <div class="ai-head">
       <div class="ai-dot"></div>
-      <span class="ai-title">CLAUDE AI · ANALYSIS</span>
+      <span class="ai-title">🤖 QUANT AI · LTC MARKET INTELLIGENCE</span>
       <span class="ai-timer" id="aiTimer">লোড হচ্ছে...</span>
       <button class="ai-refresh" onclick="runAIAnalysis(true)">↻ রিফ্রেশ</button>
     </div>
@@ -1070,6 +1069,21 @@ body>*{position:relative;z-index:1}
     </select>
   </div>
   <div id="panel-open">
+    <!-- TRADING MODE SWITCHER -->
+    <div style="background:var(--bg3);border:.5px solid var(--bd2);border-radius:10px;padding:10px;margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span style="font-size:11px;font-weight:700;color:var(--t)">🎮 ট্রেডিং মোড (Trading Mode)</span>
+        <div style="display:flex;gap:4px">
+          <button id="mode-paper-btn" class="btn" onclick="setTradingMode('paper')" style="font-size:10px;padding:4px 10px;border-radius:6px;background:var(--g);color:var(--bg);font-weight:700;border:none;cursor:pointer">Demo ($1000)</button>
+          <button id="mode-live-btn" class="btn" onclick="setTradingMode('live')" style="font-size:10px;padding:4px 10px;border-radius:6px;background:var(--bg4);color:var(--t3);border:1px solid var(--bd);cursor:pointer">Live API</button>
+        </div>
+      </div>
+      <div id="paper-wallet-bar" style="display:flex;justify-content:space-between;align-items:center;background:var(--bg2);padding:6px 10px;border-radius:6px;font-family:var(--mono);font-size:11px">
+        <span style="color:var(--t3)">ভার্চুয়াল ক্যাপিটাল:</span>
+        <span style="color:var(--g);font-weight:700" id="paper-balance-display">$1,000.00 USDT</span>
+        <button onclick="resetPaperBalance()" style="background:transparent;border:none;color:var(--a);font-size:10px;cursor:pointer;text-decoration:underline">রিসেট</button>
+      </div>
+    </div>
     <div style="background:var(--bg3);border:.5px solid var(--bd2);border-radius:10px;padding:12px;margin-bottom:10px;display:flex;flex-direction:column;gap:8px">
       <div style="display:flex;justify-content:space-between;align-items:center">
         <span style="font-size:11px;color:var(--t2);font-weight:700">🤖 API অটো-ট্রেড (Auto-Execute)</span>
@@ -1098,6 +1112,25 @@ body>*{position:relative;z-index:1}
       <div class="tsc"><div class="tsv" id="ts-ep">—</div><div class="tsl2">এন্ট্রি দাম</div></div>
       <div class="tsc"><div class="tsv" id="ts-el" style="color:var(--a)">00:00:00</div><div class="tsl2">সময় চলছে</div></div>
       <div class="tsc"><div class="tsv" id="ts-dl" style="color:var(--r)">48:00:00</div><div class="tsl2">ডেডলাইন</div></div>
+    </div>
+    <!-- LIVE LIQUIDATION RISK RADAR -->
+    <div style="background:var(--bg3);border:.5px solid var(--bd2);border-radius:8px;padding:8px 10px;margin-top:8px">
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--t2);margin-bottom:6px">
+        <span>🛡️ লিকুইডেশন মার্জিন সেফটি</span>
+        <span id="act-liq-status" style="font-family:var(--mono);font-weight:700;color:var(--g)">🟢 SAFE</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-family:var(--mono);font-size:10px">
+        <div style="background:var(--bg2);padding:6px;border-radius:6px;text-align:center">
+          <div style="color:var(--t3);font-size:8px">LONG LIQ</div>
+          <div id="act-liq-l" style="color:var(--r);font-weight:700">—</div>
+          <div id="act-dist-l" style="color:var(--t2);font-size:8px">—% away</div>
+        </div>
+        <div style="background:var(--bg2);padding:6px;border-radius:6px;text-align:center">
+          <div style="color:var(--t3);font-size:8px">SHORT LIQ</div>
+          <div id="act-liq-s" style="color:var(--r);font-weight:700">—</div>
+          <div id="act-dist-s" style="color:var(--t2);font-size:8px">—% away</div>
+        </div>
+      </div>
     </div>
     <div style="margin-top:10px"><button class="btn btnr btnsm" onclick="endTrade()">✕ ট্রেড বন্ধ করুন</button></div>
   </div>
@@ -1478,8 +1511,18 @@ body>*{position:relative;z-index:1}
   <div class="sett-modal-inner">
     <div class="sett-title">⚙️ সেটিংস · Settings</div>
     
+    <div style="background:var(--gd);border:1px solid var(--gd3);border-radius:8px;padding:8px 10px;margin-bottom:12px;font-size:10px;color:var(--g)">
+      🔒 <b>লোকাল প্রাইভেসি গ্যারান্টি:</b> সকল API Key ও ট্রেড ডেটা সম্পূর্ণ আপনার ব্রাউজারের প্রাইভেট লোকাল স্টোরেজে সংরক্ষিত থাকে। কোনো এক্সটার্নাল সার্ভারে তথ্য পাঠানো হয় না।
+    </div>
+
     <div class="sett-field">
-      <label class="sett-label">Anthropic API Key (Claude)</label>
+      <label class="sett-label">Google Gemini API Key (সুপারিশকৃত AI)</label>
+      <input class="sett-inp" id="settGeminiKey" type="password" placeholder="AIzaSy...">
+      <div style="font-size:8px;color:var(--t3);margin-top:2px">বিনামূল্যে পেতে: <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--g);text-decoration:underline">Google AI Studio</a> (ব্রাউজারে সরাসরি চলে)</div>
+    </div>
+
+    <div class="sett-field">
+      <label class="sett-label">Anthropic API Key (Claude - Optional)</label>
       <input class="sett-inp" id="settAnthropicKey" type="password" placeholder="sk-ant-...">
     </div>
     
@@ -1500,22 +1543,22 @@ body>*{position:relative;z-index:1}
     
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
       <div class="sett-field" style="margin-bottom:0">
-        <label class="sett-label">Binance API Key</label>
+        <label class="sett-label">Exchange Access Key</label>
         <input class="sett-inp" id="settBinanceKey" type="password" placeholder="Binance API Key...">
       </div>
       <div class="sett-field" style="margin-bottom:0">
-        <label class="sett-label">Binance API Secret</label>
+        <label class="sett-label">Exchange Signer Secret</label>
         <input class="sett-inp" id="settBinanceSecret" type="password" placeholder="Binance API Secret...">
       </div>
     </div>
     
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
       <div class="sett-field" style="margin-bottom:0">
-        <label class="sett-label">Bybit API Key</label>
+        <label class="sett-label">Secondary Exchange Key</label>
         <input class="sett-inp" id="settBybitKey" type="password" placeholder="Bybit API Key...">
       </div>
       <div class="sett-field" style="margin-bottom:0">
-        <label class="sett-label">Bybit API Secret</label>
+        <label class="sett-label">Secondary Signer Secret</label>
         <input class="sett-inp" id="settBybitSecret" type="password" placeholder="Bybit API Secret...">
       </div>
     </div>
@@ -1612,11 +1655,16 @@ let lsRatio=1.0;
 const pad=n=>String(n).padStart(2,'0');
 
 // ─── LOAD JOURNAL FROM STORAGE ───
-try{const j=localStorage.getItem('ltc_j_v7');if(j)journal=JSON.parse(j);}catch(e){}
-try{const a=localStorage.getItem('ltc_alerts_v7');if(a)priceAlerts=JSON.parse(a);}catch(e){}
+try{const j=localStorage.getItem('ltc_j_v8')||localStorage.getItem('ltc_j_v7');if(j)journal=JSON.parse(j);}catch(e){}
+try{const a=localStorage.getItem('ltc_alerts_v8')||localStorage.getItem('ltc_alerts_v7');if(a)priceAlerts=JSON.parse(a);}catch(e){}
+
+let tradingMode = localStorage.getItem('ltc_trading_mode_v8') || 'paper';
+let paperBalance = parseFloat(localStorage.getItem('ltc_paper_balance_v8') || '1000.0');
+if(isNaN(paperBalance)) paperBalance = 1000.0;
 
 // ─── SETTINGS MANAGEMENT ───
 let settings={
+  geminiKey:'',
   anthropicKey:'',
   cryptocompareKey:'',
   tgToken:'',
@@ -1631,7 +1679,7 @@ let settings={
   hedgeAlarmThreshold:80
 };
 try{
-  const s=localStorage.getItem('ltc_settings_v7');
+  const s=localStorage.getItem('ltc_settings_v8')||localStorage.getItem('ltc_settings_v7');
   if(s) {
     const parsed = JSON.parse(s);
     settings = {...settings, ...parsed};
@@ -1669,6 +1717,7 @@ function toggleSettings(show){
   if(!m)return;
   m.style.display=show?'flex':'none';
   if(show){
+    if(document.getElementById('settGeminiKey')) document.getElementById('settGeminiKey').value=settings.geminiKey||'';
     document.getElementById('settAnthropicKey').value=settings.anthropicKey||'';
     document.getElementById('settCryptocompareKey').value=settings.cryptocompareKey||'';
     document.getElementById('settTgToken').value=settings.tgToken||'';
@@ -1692,6 +1741,7 @@ function toggleSettings(show){
   }
 }
 function saveSettings(){
+  if(document.getElementById('settGeminiKey')) settings.geminiKey=document.getElementById('settGeminiKey').value.trim();
   settings.anthropicKey=document.getElementById('settAnthropicKey').value.trim();
   settings.cryptocompareKey=document.getElementById('settCryptocompareKey').value.trim();
   settings.tgToken=document.getElementById('settTgToken').value.trim();
@@ -1705,8 +1755,9 @@ function saveSettings(){
   settings.hedgeAlarm=document.getElementById('settHedgeAlarm').checked;
   settings.hedgeAlarmThreshold=parseInt(document.getElementById('settHedgeAlarmThreshold').value)||80;
   try{
+    localStorage.setItem('ltc_settings_v8',JSON.stringify(settings));
     localStorage.setItem('ltc_settings_v7',JSON.stringify(settings));
-    showToast('✅ সেটিংস সেভ করা হয়েছে!','above');
+    showToast('✅ সেটিংস সেভ করা হয়েছে!','above');
     initAutoReload();
   }catch(e){}
   toggleSettings(false);
@@ -1993,12 +2044,12 @@ function updateChartPriceLines(px,sr){
 // ═══════════════════════════════════════════════════════
 // WEBSOCKET LIVE PRICE (Binance)
 // ═══════════════════════════════════════════════════════
-function changeSymbol(sym){
-  currentSymbol = sym;
-  const logo = document.getElementById('logoSymbol'); if(logo) logo.textContent = sym;
-  const titleEl = document.getElementById('chartTitle'); if(titleEl) titleEl.textContent = `${sym}/USDT · TRADINGVIEW ADVANCED`;
+function changeSymbol(sym='LTC'){
+  currentSymbol = 'LTC';
+  const logo = document.getElementById('logoSymbol'); if(logo) logo.textContent = 'LTC';
+  const titleEl = document.getElementById('chartTitle'); if(titleEl) titleEl.textContent = `LTC/USDT · TRADINGVIEW ADVANCED`;
   const sigEl = document.getElementById('chart-signal'); if(sigEl) { sigEl.textContent = 'LOAD...'; sigEl.className = 'bx bn3'; }
-  document.title = `${sym}/HEDGE TERMINAL v7 · ALLEX`;
+  document.title = `LTC/HEDGE TERMINAL v8 · ALLEX`;
   
   // Reconnect WebSocket & reset charts
   initWS();
@@ -2866,7 +2917,7 @@ function updatePriceMeta(px,sr,rsi,chg){
 }
 
 // ═══════════════════════════════════════════════════════
-// AI ANALYSIS (Real Claude API)
+// AI ANALYSIS (Google Gemini 2.5 Flash + Claude + Quant Engine)
 // ═══════════════════════════════════════════════════════
 async function runAIAnalysis(manual=false){
   if(!manual&&aiCountdown>0)return;
@@ -2880,16 +2931,17 @@ async function runAIAnalysis(manual=false){
   const ds=s1?((px-s1)/px*100).toFixed(2):0;
   const{lev,lm,sm}=getPlanConfig();
 
-  if(!settings.anthropicKey){
+  if(!settings.geminiKey && !settings.anthropicKey){
     renderAIFallback(px,rsi,fr,r1,s1,dr,ds);
     return;
   }
   if(panel)panel.classList.add('loading');
-  content.innerHTML='<div class="ai-loading"><span class="spin"></span><br>Claude AI বিশ্লেষণ করছে...</div>';
-  const prompt=`You are an expert crypto hedge trader analyzing ${currentSymbol}/USDT for a Bengali-speaking trader. Respond ONLY in simple Bengali (বাংলা) mixed with English numbers/terms. Be concise and actionable.
+  content.innerHTML='<div class="ai-loading"><span class="spin"></span><br>Gemini AI রিয়েলটাইম LTC মার্কেট বিশ্লেষণ করছে...</div>';
+  
+  const promptText=`You are an expert crypto hedge trader analyzing LTC/USDT for a Bengali-speaking trader. Respond ONLY in simple Bengali (বাংলা) mixed with English numbers/terms. Be concise and actionable.
 
 Current Market Data:
-- ${currentSymbol}/USDT Price: $${px.toFixed(2)}
+- LTC/USDT Price: $${px.toFixed(2)}
 - RSI (14, Wilder): ${rsi.toFixed(1)}
 - ATR (14, 4h): $${atrVal.toFixed(2)} (${(atrVal/px*100).toFixed(2)}%)
 - Funding Rate: ${fr.toFixed(4)}%
@@ -2897,30 +2949,50 @@ Current Market Data:
 - Nearest Resistance: $${r1.toFixed(2)} (+${dr}% away)
 - Nearest Support: $${s1.toFixed(2)} (-${ds}% away)
 - Hedge Setup: Long $${lm} + Short $${sm} at ${lev}x leverage
-- Order Book: Analyzed
 
-Provide analysis in this EXACT JSON format only, no markdown:
-{"signal":"ENTER_NOW or WAIT or CAUTION","signal_strength":75,"bias":"LONG_BIAS or SHORT_BIAS or NEUTRAL","summary":"2-3 sentences Bengali about current condition and volatility","long_outlook":"1 sentence Bengali with ATR-based TP","short_outlook":"1 sentence Bengali with ATR-based TP","key_warning":"1 important warning Bengali","funding_impact":"funding rate effect Bengali","ls_comment":"long short ratio comment Bengali"}`;
+Provide analysis in this EXACT JSON format only, without markdown:
+{"signal":"ENTER_NOW or WAIT or CAUTION","signal_strength":85,"bias":"LONG_BIAS or SHORT_BIAS or NEUTRAL","summary":"2-3 sentences Bengali about current LTC condition and volatility","long_outlook":"1 sentence Bengali with ATR-based TP","short_outlook":"1 sentence Bengali with ATR-based TP","key_warning":"1 important warning Bengali","funding_impact":"funding rate effect Bengali","ls_comment":"long short ratio comment Bengali"}`;
 
   try{
-    const resp=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{
-        'Content-Type':'application/json',
-        'x-api-key':settings.anthropicKey,
-        'anthropic-version':'2023-06-01',
-        'dangerously-allow-browser':'true'
-      },
-      body:JSON.stringify({model:'claude-3-5-sonnet-latest',max_tokens:1000,messages:[{role:'user',content:prompt}]})
-    });
-    const data=await resp.json();
-    if(data.error) throw new Error(data.error.message);
-    const text=data.content.map(i=>i.text||'').join('');
-    const jsonMatch=text.replace(/```json|```/g,'').trim().match(/\{[\s\S]*\}/);
-    if(!jsonMatch)throw new Error('no json');
-    renderAIResult(JSON.parse(jsonMatch[0]),px);
+    if(settings.geminiKey){
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${settings.geminiKey}`,{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          contents:[{parts:[{text:promptText}]}],
+          generationConfig:{responseMimeType:'application/json'}
+        })
+      });
+      const data = await res.json();
+      if(data.error) throw new Error(data.error.message);
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      if(!text) throw new Error('Empty Gemini response');
+      const cleanJson = text.replace(/```json|```/g,'').trim();
+      renderAIResult(JSON.parse(cleanJson), px);
+      return;
+    }
+
+    if(settings.anthropicKey){
+      const resp=await fetch('https://api.anthropic.com/v1/messages',{
+        method:'POST',
+        headers:{
+          'Content-Type':'application/json',
+          'x-api-key':settings.anthropicKey,
+          'anthropic-version':'2023-06-01',
+          'dangerously-allow-browser':'true'
+        },
+        body:JSON.stringify({model:'claude-3-5-sonnet-latest',max_tokens:1000,messages:[{role:'user',content:promptText}]})
+      });
+      const data=await resp.json();
+      if(data.error) throw new Error(data.error.message);
+      const text=data.content.map(i=>i.text||'').join('');
+      const jsonMatch=text.replace(/```json|```/g,'').trim().match(/\{[\s\S]*\}/);
+      if(!jsonMatch)throw new Error('no json');
+      renderAIResult(JSON.parse(jsonMatch[0]),px);
+      return;
+    }
   }catch(e){
-    console.error(e);
+    console.warn('AI API fallback to Quant Engine:', e);
     renderAIFallback(px,rsi,fr,r1,s1,dr,ds);
   }
   finally{if(panel)panel.classList.remove('loading');}
@@ -2959,7 +3031,7 @@ function renderAIFallback(px,rsi,fr,r1,s1,dr,ds){
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">
       <span style="background:${sc}22;border:.5px solid ${sc};color:${sc};padding:4px 12px;border-radius:20px;font-family:var(--mono);font-size:11px;font-weight:700">${signal}</span>
       <span style="background:${bc}22;border:.5px solid ${bc};color:${bc};padding:4px 12px;border-radius:20px;font-family:var(--mono);font-size:11px">${bias}</span>
-      <span style="font-size:9px;color:var(--t3);font-family:var(--mono)">[Fallback mode]</span>
+      <span style="font-size:9px;color:var(--g);font-family:var(--mono);font-weight:700">[⚡ QUANT ALGORITHMIC ENGINE]</span>
     </div>
     <div class="ai-body" style="margin-bottom:10px">${currentSymbol}/USDT বর্তমানে $${px.toFixed(2)}। RSI ${rsi.toFixed(1)} — ${rsi<30?'ওভারসোল্ড':rsi>70?'ওভারবট':'নিউট্রাল'}। ATR: $${atrVal.toFixed(2)}। S: $${s1.toFixed(2)} (−${ds}%), R: $${r1.toFixed(2)} (+${dr}%)।</div>
     <div class="ai-scores">
@@ -3656,7 +3728,62 @@ async function updateApiBalance(){
     balValEl.style.color='var(--r)';
   }
 }
+
+// ═══════════════════════════════════════════════════════
+// PAPER TRADING (DEMO SIMULATOR)
+// ═══════════════════════════════════════════════════════
+function setTradingMode(mode){
+  tradingMode = mode;
+  try{ localStorage.setItem('ltc_trading_mode_v8', mode); }catch(e){}
+  const pBtn = document.getElementById('mode-paper-btn');
+  const lBtn = document.getElementById('mode-live-btn');
+  const bar = document.getElementById('paper-wallet-bar');
+  const desc = document.getElementById('trade-btn-desc');
+  if(mode === 'paper'){
+    if(pBtn){ pBtn.style.background = 'var(--g)'; pBtn.style.color = 'var(--bg)'; }
+    if(lBtn){ lBtn.style.background = 'var(--bg4)'; lBtn.style.color = 'var(--t3)'; }
+    if(bar) bar.style.display = 'flex';
+    if(desc) desc.textContent = '🎮 ডেমো মোড: $১,০০০ ভার্চুয়াল ব্যালেন্স দিয়ে রিস্ক-মুক্ত হেজ টেস্ট করুন';
+    showToast('🎮 Demo Mode (Virtual $1,000 USDT) সক্রিয়', 'above');
+  } else {
+    if(lBtn){ lBtn.style.background = 'var(--b)'; lBtn.style.color = '#fff'; }
+    if(pBtn){ pBtn.style.background = 'var(--bg4)'; pBtn.style.color = 'var(--t3)'; }
+    if(bar) bar.style.display = 'none';
+    if(desc) desc.textContent = '⚡ লাইভ API বা ম্যানুয়াল ট্রেড ট্র্যাক হবে';
+    showToast('⚡ Live API Mode সক্রিয়', 'above');
+  }
+  updatePaperDisplay();
+}
+
+function updatePaperDisplay(){
+  const disp = document.getElementById('paper-balance-display');
+  if(disp){
+    disp.textContent = '$' + paperBalance.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' USDT';
+    disp.style.color = paperBalance >= 1000 ? 'var(--g)' : 'var(--r)';
+  }
+}
+
+function resetPaperBalance(){
+  if(confirm('ভার্চুয়াল ব্যালেন্স পুনরায় $1,000.00 USDT তে রিসেট করতে চান?')){
+    paperBalance = 1000.0;
+    try{ localStorage.setItem('ltc_paper_balance_v8', '1000.00'); }catch(e){}
+    updatePaperDisplay();
+    showToast('🔄 ডেমো ব্যালেন্স রিসেট সম্পন্ন: $1,000.00 USDT', 'above');
+  }
+}
+
 function handleStartTradeClick(){
+  if(tradingMode === 'paper'){
+    const {lm, sm} = getPlanConfig();
+    const req = lm + sm;
+    if(paperBalance < req){
+      showToast(`❌ ভার্চুয়াল ব্যালেন্স কম ($${paperBalance.toFixed(2)})! রিসেট বা মার্জিন কমান।`, 'below');
+      return;
+    }
+    startTrade();
+    showToast(`🎮 Demo Hedge চালু: Long $${lm} + Short $${sm} (Virtual)`, 'above');
+    return;
+  }
   const apiCheck=document.getElementById('api-exec-check')?.checked;
   if(!apiCheck){
     startTrade();
@@ -3664,11 +3791,11 @@ function handleStartTradeClick(){
   }
   const ex=document.getElementById('api-exec-exchange')?.value;
   if(ex==='binance'&&(!settings.binanceKey||!settings.binanceSecret)){
-    showToast('❌ সেটিংসে Binance API Key ও Secret কনফিগার করুন!','below');
+    showToast('❌ সেটিংসে Exchange Key ও Secret কনফিগার করুন!','below');
     return;
   }
   if(ex==='bybit'&&(!settings.bybitKey||!settings.bybitSecret)){
-    showToast('❌ সেটিংসে Bybit API Key ও Secret কনফিগার করুন!','below');
+    showToast('❌ সেটিংসে Secondary Key ও Secret কনফিগার করুন!','below');
     return;
   }
   showApiConfirmModal();
@@ -3682,14 +3809,45 @@ function startTrade(){
   document.getElementById('pnlLive').style.display='block';
   const ep=document.getElementById('ts-ep');if(ep)ep.textContent=price?'$'+price.toFixed(2):'—';
   if(price)updateChartPriceLines(price,SR);
+  updatePnL();
 }
 function endTrade(){
   if(tradeT&&tradePx&&price){
-    const pnl=((price-tradePx)/tradePx*100),dur=Math.round((Date.now()-tradeT)/60000);
-    journal.unshift({id:Date.now(),date:new Date().toLocaleDateString('en-GB'),entry:tradePx.toFixed(2),exit:price.toFixed(2),pnl:pnl.toFixed(2),dur,side:pnl>0?'LONG':'SHORT',margin:document.getElementById('pl-lm')?.value||50,lev:document.getElementById('pl-lev')?.value||20});
+    const {lm, sm, lev} = getPlanConfig();
+    const lq = (lm * lev) / tradePx;
+    const sq = (sm * lev) / tradePx;
+    const longPnl = (price - tradePx) * lq;
+    const shortPnl = (tradePx - price) * sq;
+    const netDollar = longPnl + shortPnl;
+    const pnlPct = ((netDollar / (lm + sm)) * 100);
+    const dur = Math.round((Date.now() - tradeT) / 60000);
+    const isDemo = (tradingMode === 'paper');
+
+    if(isDemo){
+      paperBalance += netDollar;
+      try{ localStorage.setItem('ltc_paper_balance_v8', paperBalance.toFixed(2)); }catch(e){}
+      updatePaperDisplay();
+    }
+
+    journal.unshift({
+      id: Date.now(),
+      date: new Date().toLocaleDateString('en-GB'),
+      entry: tradePx.toFixed(2),
+      exit: price.toFixed(2),
+      pnl: pnlPct.toFixed(2),
+      netUsd: netDollar.toFixed(2),
+      dur,
+      side: isDemo ? 'HEDGE (DEMO)' : 'HEDGE (LIVE)',
+      margin: lm + sm,
+      lev
+    });
     if(journal.length>100)journal.pop();
-    try{localStorage.setItem('ltc_j_v7',JSON.stringify(journal));}catch(e){}
+    try{
+      localStorage.setItem('ltc_j_v8',JSON.stringify(journal));
+      localStorage.setItem('ltc_j_v7',JSON.stringify(journal));
+    }catch(e){}
     renderJournal();
+    showToast(`✅ ট্রেড বন্ধ হয়েছে! নেট: ${netDollar>=0?'+':''}$${netDollar.toFixed(2)} (${pnlPct.toFixed(2)}%)`, 'above');
   }
   tradeT=null;tradePx=null;longEntry=null;shortEntry=null;
   saveActiveTradeState();
@@ -3751,6 +3909,32 @@ function updatePnL(){
   set('pnl-fund','-$'+fr48.toFixed(2),'var(--a)');
   const pa=document.getElementById('pnl-act');
   if(pa){const pct=(netPnl/(lm+sm)*100).toFixed(2);pa.textContent=`নেট ${netPnl>=0?'+':''}${pct}%`;pa.style.color=netPnl>=0?'var(--g)':'var(--r)';}
+
+  // Live Liquidation & Safety Radar
+  const longLiq = tradePx * (1 - 1/lev + 0.004);
+  const shortLiq = tradePx * (1 + 1/lev - 0.004);
+  const distL = Math.max(0, ((price - longLiq) / price * 100));
+  const distS = Math.max(0, ((shortLiq - price) / price * 100));
+
+  set('act-liq-l', '$' + longLiq.toFixed(2));
+  set('act-liq-s', '$' + shortLiq.toFixed(2));
+  set('act-dist-l', distL.toFixed(2) + '% away');
+  set('act-dist-s', distS.toFixed(2) + '% away');
+
+  const minDist = Math.min(distL, distS);
+  const statEl = document.getElementById('act-liq-status');
+  if(statEl){
+    if(minDist > 3.0){
+      statEl.textContent = '🟢 SAFE';
+      statEl.style.color = 'var(--g)';
+    } else if(minDist > 1.5){
+      statEl.textContent = '🟡 CAUTION (' + minDist.toFixed(1) + '%)';
+      statEl.style.color = 'var(--a)';
+    } else {
+      statEl.textContent = '🔴 CRITICAL LIQ WARNING!';
+      statEl.style.color = 'var(--r)';
+    }
+  }
 }
 function renderJournal(){
   const ja=document.getElementById('jAnalytics'),jl=document.getElementById('jlist'),ew=document.getElementById('equityWrap');
@@ -4754,6 +4938,7 @@ async function loadAll(){
   calculateArbYield();
   runAIAnalysis(false);
   restoreActiveTradeState();
+  setTradingMode(tradingMode);
 }
 async function periodicRefresh(){
   // Fetch metrics in parallel
