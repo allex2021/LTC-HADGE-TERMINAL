@@ -4953,11 +4953,21 @@ async function periodicRefresh(){
 }
 
 // --- CYBER2 LICENSE GATE ENGINE ---
+const VALID_LICENSE_KEYS = [
+  'CYBER2-PRO-2026',
+  'CYBER2-BETA-FREE',
+  'CYBER2-VIP-LTC',
+  'CYBER2-ELITE-2026',
+  'ALLEX-PRO-ACCESS',
+  'CYBER2-ULTIMATE-V8',
+  'LTC-HEDGE-2026'
+];
+
 function checkLicense() {
   const license = localStorage.getItem('cyber2_license');
   const lockScreen = document.getElementById('license-lock');
   
-  if (license === 'CYBER2-PRO-2026' || license === 'CYBER2-BETA-FREE') {
+  if (VALID_LICENSE_KEYS.includes(license)) {
     if (lockScreen) lockScreen.style.display = 'none';
     return true;
   } else {
@@ -4976,7 +4986,7 @@ function validateLicenseKey() {
   if (!keyField) return;
   const key = keyField.value.trim().toUpperCase();
   
-  if (key === 'CYBER2-PRO-2026' || key === 'CYBER2-BETA-FREE') {
+  if (VALID_LICENSE_KEYS.includes(key)) {
     localStorage.setItem('cyber2_license', key);
     showToast('🔑 Activation successful! Welcome to Cyber2 Pro.', 'above');
     setTimeout(() => {
